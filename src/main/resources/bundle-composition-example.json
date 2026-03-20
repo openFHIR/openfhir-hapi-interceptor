@@ -1,0 +1,284 @@
+{
+  "resourceType": "Bundle",
+  "type": "transaction",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Composition",
+        "meta": {
+          "profile": [
+            "http://hl7.org/fhir/uv/ips/StructureDefinition/Composition-uv-ips"
+          ]
+        },
+        "subject": {
+          "reference": "Patient/1"
+        },
+        "contained": [
+          {
+            "resourceType": "Condition",
+            "id": "1",
+            "clinicalStatus": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+                  "code": "active",
+                  "display": "Active"
+                },
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+                  "code": "resolved",
+                  "display": "Resolved"
+                },
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+                  "code": "remission",
+                  "display": "Remission"
+                },
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+                  "code": "recurrence",
+                  "display": "Recurrence"
+                }
+              ]
+            },
+            "verificationStatus": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+                  "code": "confirmed",
+                  "display": "Confirmed"
+                }
+              ]
+            },
+            "severity": {
+              "coding": [
+                {
+                  "system": "local",
+                  "code": "at0047",
+                  "display": "Mild"
+                }
+              ],
+              "text": "Mild"
+            },
+            "code": {
+              "coding": [
+                {
+                  "system": "//fhir.hl7.org/ValueSet/$expand?url=http://hl7.org/fhir/uv/ips/ValueSet/problems-uv-ips",
+                  "code": "42",
+                  "display": "No example for termínology '//fhir.hl7.org/ValueSet/$expand?url=http://hl7.org/fhir/uv/ips/ValueSet/problems-uv-ips' available"
+                }
+              ],
+              "text": "No example for termínology '//fhir.hl7.org/ValueSet/$expand?url=http://hl7.org/fhir/uv/ips/ValueSet/problems-uv-ips' available"
+            },
+            "onsetDateTime": "2022-02-03T04:05:06+00:00",
+            "abatementDateTime": "2022-02-03T04:05:06+00:00",
+            "recordedDate": "2022-02-03T04:05:06+00:00",
+            "stage": [
+              {
+                "type": {
+                  "text": "Lorem ipsum"
+                }
+              }
+            ],
+            "note": [
+              {
+                "text": "Lorem ipsum"
+              }
+            ]
+          },
+          {
+            "resourceType": "Condition",
+            "id": "2",
+            "clinicalStatus": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+                  "code": "inactive",
+                  "display": "Inactive"
+                },
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+                  "code": "relapse",
+                  "display": "Relapse"
+                }
+              ]
+            },
+            "severity": {
+              "coding": [
+                {
+                  "system": "local",
+                  "code": "at0048",
+                  "display": "Moderate"
+                }
+              ],
+              "text": "Moderate"
+            },
+            "code": {
+              "coding": [
+                {
+                  "system": "http://snomed.info/sct",
+                  "code": "161891005",
+                  "display": "Chronic back pain"
+                }
+              ],
+              "text": "Chronic back pain"
+            },
+            "onsetDateTime": "2020-06-15T10:00:00+00:00",
+            "abatementDateTime": "2024-01-01T00:00:00+00:00",
+            "recordedDate": "2022-02-03T04:05:06+00:00",
+            "stage": [
+              {
+                "type": {
+                  "text": "MRI confirmed"
+                }
+              }
+            ],
+            "note": [
+              {
+                "text": "Managed with physiotherapy"
+              }
+            ]
+          },
+          {
+            "resourceType": "AllergyIntolerance",
+            "id": "3",
+            "clinicalStatus": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical",
+                  "code": "inactive",
+                  "display": "Inactive"
+                }
+              ]
+            },
+            "verificationStatus": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-verification",
+                  "code": "confirmed",
+                  "display": "Confirmed"
+                }
+              ]
+            },
+            "criticality": "high",
+            "code": {
+              "coding": [
+                {
+                  "system": "//fhir.hl7.org/ValueSet/$expand?url=http://hl7.org/fhir/uv/ips/ValueSet/allergies-intolerances-uv-ips",
+                  "code": "42",
+                  "display": "No example for termínology '//fhir.hl7.org/ValueSet/$expand?url=http://hl7.org/fhir/uv/ips/ValueSet/allergies-intolerances-uv-ips' available"
+                }
+              ],
+              "text": "No example for termínology '//fhir.hl7.org/ValueSet/$expand?url=http://hl7.org/fhir/uv/ips/ValueSet/allergies-intolerances-uv-ips' available"
+            },
+            "onsetDateTime": "2022-02-03T04:05:07+00:00",
+            "lastOccurrence": "2022-02-03T04:05:06+00:00",
+            "note": [
+              {
+                "text": "a random text"
+              }
+            ],
+            "reaction": [
+              {
+                "substance": {
+                  "text": "Lorem ipsum Specific Substance"
+                },
+                "manifestation": [
+                  {
+                    "coding": [
+                      {
+                        "system": "//fhir.hl7.org/ValueSet/$expand?url=http://hl7.org/fhir/uv/ips/ValueSet/allergy-reaction-uv-ips",
+                        "code": "142",
+                        "display": "No example for termínology '//fhir.hl7.org/ValueSet/$expand?url=http://hl7.org/fhir/uv/ips/ValueSet/allergy-reaction-uv-ips' available"
+                      }
+                    ],
+                    "text": "No example for termínology '//fhir.hl7.org/ValueSet/$expand?url=http://hl7.org/fhir/uv/ips/ValueSet/allergy-reaction-uv-ips' available"
+                  }
+                ],
+                "description": "reaction description",
+                "onset": "2027-02-03T04:05:06+00:00",
+                "severity": "moderate",
+                "exposureRoute": {
+                  "text": "Exposure Lorem ipsum"
+                },
+                "note": [
+                  {
+                    "text": "Reaction text"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "section": [
+          {
+            "title": "Active Problems",
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "11450-4",
+                  "display": "Problem list Reported"
+                }
+              ]
+            },
+            "text": {
+              "status": "generated",
+              "div": "<div xmlns=***REMOVED***"http://www.w3.org/1999/xhtml***REMOVED***">Hot flushes</div>"
+            },
+            "entry": [
+              {
+                "reference": "#1"
+              },
+              {
+                "reference": "#2"
+              }
+            ],
+            "emptyReason": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/list-empty-reason",
+                  "code": "unavailable"
+                }
+              ],
+              "text": "No information about current problems"
+            }
+          },
+          {
+            "title": "Active Allergies and Intolerances",
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "48765-2",
+                  "display": "Allergies and Intolerances"
+                }
+              ]
+            },
+            "text": {
+              "status": "generated",
+              "div": "<div xmlns=***REMOVED***"http://www.w3.org/1999/xhtml***REMOVED***">Hot flushes</div>"
+            },
+            "entry": [
+              {
+                "reference": "#3"
+              }
+            ],
+            "emptyReason": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/list-empty-reason",
+                  "code": "nilknown"
+                }
+              ],
+              "text": "No known allergies"
+            }
+          }
+        ]
+      },
+      "request": {
+        "method": "POST"
+      }
+    }
+  ]
+}
