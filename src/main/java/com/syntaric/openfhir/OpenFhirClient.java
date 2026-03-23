@@ -16,6 +16,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.List;
+import java.util.UUID;
 
 @Component
 @Slf4j
@@ -45,11 +46,11 @@ public class OpenFhirClient {
         return fhirContext;
     }
 
-    public String convert(final IBaseResource resource) {
+    public String convert(final IBaseResource resource, final String reqId) {
         final IParser parser = fhirContext.newJsonParser();
         final String fhirPayload = parser.encodeResourceToString(resource);
 
-        final HttpRequest request = newRequestBuilder(TO_OPENFHIR_PATH)
+        final HttpRequest request = newRequestBuilder(TO_OPENFHIR_PATH, reqId)
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(fhirPayload))
                 .build();
@@ -57,77 +58,87 @@ public class OpenFhirClient {
         try {
             final HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                throw new RuntimeException("OpenFHIR conversion failed with status " + response.statusCode() + ": " + response.body());
+                throw new OpenFhirException("OpenFHIR toopenehr failed with status " + response.statusCode(),
+                        response.statusCode(), response.body(), response.headers());
             }
-            log.info("OpenFHIR conversion successful, status={}", response.statusCode());
+            log.info("OpenFHIR toopenehr successful, status={}", response.statusCode());
             return response.body();
-        } catch (InterruptedException e) {
+        } catch (final OpenFhirException e) {
+            throw e;
+        } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("OpenFHIR conversion request interrupted", e);
-        } catch (Exception e) {
-            throw new RuntimeException("OpenFHIR conversion request failed", e);
+            throw new OpenFhirException("OpenFHIR toopenehr request interrupted", e);
+        } catch (final Exception e) {
+            throw new OpenFhirException("OpenFHIR toopenehr request failed", e);
         }
     }
 
-    public ToAqlResponse getAql(final ToAqlRequest toAqlRequest) {
+    public ToAqlResponse getAql(final ToAqlRequest toAqlRequest, final String reqId) {
         try {
             final String payload = objectMapper.writeValueAsString(toAqlRequest);
 
-            final HttpRequest request = newRequestBuilder(TO_AQL_PATH)
+            final HttpRequest request = newRequestBuilder(TO_AQL_PATH, reqId)
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(payload))
                     .build();
 
             final HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                throw new RuntimeException("OpenFHIR toAql failed with status " + response.statusCode() + ": " + response.body());
+                throw new OpenFhirException("OpenFHIR toaql failed with status " + response.statusCode(),
+                        response.statusCode(), response.body(), response.headers());
             }
-            log.info("OpenFHIR toAql successful, status={}", response.statusCode());
+            log.info("OpenFHIR toaql successful, status={}, reqId={}", response.statusCode(), reqId);
             return objectMapper.readValue(response.body(), ToAqlResponse.class);
-        } catch (InterruptedException e) {
+        } catch (final OpenFhirException e) {
+            throw e;
+        } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("OpenFHIR toAql request interrupted", e);
-        } catch (Exception e) {
-            throw new RuntimeException("OpenFHIR toAql request failed", e);
+            throw new OpenFhirException("OpenFHIR toaql request interrupted", e);
+        } catch (final Exception e) {
+            throw new OpenFhirException("OpenFHIR toaql request failed", e);
         }
     }
 
-    public String toFhir(final String openEhrQueryResult) {
+    public String toFhir(final String openEhrQueryResult, final String reqId) {
         try {
-            final HttpRequest request = newRequestBuilder(TO_FHIR_PATH + "?templateId=International+Patient+Summary")
+            final HttpRequest request = newRequestBuilder(TO_FHIR_PATH + "?templateId=International+Patient+Summary", reqId)
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(openEhrQueryResult))
                     .build();
 
             final HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                throw new RuntimeException("OpenFHIR toFhir failed with status " + response.statusCode() + ": " + response.body());
+                throw new OpenFhirException("OpenFHIR tofhir failed with status " + response.statusCode(),
+                        response.statusCode(), response.body(), response.headers());
             }
-            log.info("OpenFHIR toFhir successful, status={}", response.statusCode());
+            log.info("OpenFHIR tofhir successful, status={}, reqId={}", response.statusCode(), reqId);
             return response.body();
-        } catch (InterruptedException e) {
+        } catch (final OpenFhirException e) {
+            throw e;
+        } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("OpenFHIR toFhir request interrupted", e);
-        } catch (Exception e) {
-            throw new RuntimeException("OpenFHIR toFhir request failed", e);
+            throw new OpenFhirException("OpenFHIR tofhir request interrupted", e);
+        } catch (final Exception e) {
+            throw new OpenFhirException("OpenFHIR tofhir request failed", e);
         }
     }
 
-    /**
-     * Calls toFhir with a pre-assembled array of openEHR archetype nodes.
-     */
-    public String toFhir(final List<JsonNode> archetypeRows) {
+    public String toFhir(final List<JsonNode> archetypeRows, final String reqId) {
         try {
             final String payload = objectMapper.writeValueAsString(archetypeRows);
-            return toFhir(payload);
+            return toFhir(payload, reqId);
+        } catch (final OpenFhirException e) {
+            throw e;
         } catch (final Exception e) {
-            throw new RuntimeException("Failed to serialize archetype rows for toFhir", e);
+            throw new OpenFhirException("Failed to serialize archetype rows for tofhir", e);
         }
     }
 
-    private HttpRequest.Builder newRequestBuilder(final String path) {
+    private HttpRequest.Builder newRequestBuilder(final String path, final String reqId) {
+        final String effectiveReqId = (reqId != null && !reqId.isBlank()) ? reqId : UUID.randomUUID().toString();
         final HttpRequest.Builder builder = HttpRequest.newBuilder()
-                .uri(URI.create(properties.getBaseUrl() + path));
+                .uri(URI.create(properties.getBaseUrl() + path))
+                .header("x-req-id", effectiveReqId);
         if (tokenProvider != null) {
             builder.header("Authorization", "Bearer " + tokenProvider.getToken());
         }

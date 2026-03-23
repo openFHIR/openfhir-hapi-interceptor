@@ -1,0 +1,88 @@
+services:
+
+  hapi:
+    build: .
+    ports:
+      - "8080:8080"
+      - "5005:5005"
+    volumes:
+      - ./application.yml:/app/config/application.yml:ro
+      - ./cdrs.yml:/etc/openfhir/cdrs.yml
+    environment:
+      JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: hapi
+      POSTGRES_USER: hapi
+      POSTGRES_PASSWORD: hapi
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hapi"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  ehrbase:
+    image: ehrbase/ehrbase
+    depends_on:
+      - ehrbase-postgres
+    ports:
+      - 8082:8080
+    environment:
+      - SECURITY_AUTHTYPE=BASIC
+      - DB_URL=jdbc:postgresql://ehrbase-postgres:5432/ehrbase
+      - DB_USER=ehrbase_restricted
+      - DB_PASS=ehrbase_restricted
+      - DB_USER_ADMIN=ehrbase
+      - DB_PASS_ADMIN=ehrbase
+      - SERVER_NODENAME=local.ehrbase.org
+      - SPRING_PROFILES_ACTIVE=local
+
+  ehrbase-postgres:
+    container_name: ehrbase-postgres
+    image: ehrbase/ehrbase-v2-postgres:16.2
+    ports:
+      - 5439:5432
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - EHRBASE_USER=ehrbase_restricted
+      - EHRBASE_PASSWORD=ehrbase_restricted
+      - EHRBASE_USER_ADMIN=ehrbase
+      - EHRBASE_PASSWORD_ADMIN=ehrbase
+
+#  openfhir-enterprise:
+#    image: openfhir-enterprise-local
+#    ports:
+#      - "8081:8080"
+#      - "5006:5005"
+#    volumes:
+#      - "./.secret/openfhir-license.json:/app/openfhir-license.json"
+#      - "/home/gandrejc/development/OPENFHIR/openfhir-enterprise/engine-enterprise/src/test/resources/ips_terminology/:/app/bootstrap/"
+#    environment:
+#      JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+#      SPRING_DATASOURCE_URL: "jdbc:postgresql://openfhir-postgres:5432/openfhir"
+#      SPRING_DATASOURCE_USERNAME: "postgres"
+#      SPRING_DATASOURCE_PASSWORD: "vLw3Eu5HwNM6o1bpKCY4"
+#      DB_TYPE: "postgres"
+#      LICENSE: "/app/openfhir-license.json"
+#      BOOTSTRAP_DIR: "/app/bootstrap/"
+#      BOOTSTRAP_RECURSIVELY_OPEN_DIRECTORIES: true
+#
+#  openfhir-postgres:
+#    image: postgres:16
+#    restart: always
+#    environment:
+#      POSTGRES_USER: postgres
+#      POSTGRES_PASSWORD: vLw3Eu5HwNM6o1bpKCY4
+#    volumes:
+#      - "./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql"
+
+volumes:
+  db-data:

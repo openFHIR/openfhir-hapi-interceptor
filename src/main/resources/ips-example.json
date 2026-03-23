@@ -1,0 +1,246 @@
+{
+  "resourceType": "Bundle",
+  "type": "transaction",
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:3469614437634148267",
+      "resource": {
+        "resourceType": "AllergyIntolerance",
+        "meta": {
+          "profile": [
+            "http://hl7.org/fhir/uv/ips/StructureDefinition/AllergyIntolerance-uv-ips|2.0.0"
+          ]
+        },
+        "text": {
+          "status": "generated",
+          "div": "<div xmlns=***REMOVED***"http://www.w3.org/1999/xhtml***REMOVED***">Allergy to adhesive agent</div>"
+        },
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical",
+              "code": "active"
+            }
+          ],
+          "text": "Active (qualifier value)"
+        },
+        "type": "allergy",
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "417930000"
+            }
+          ],
+          "text": "Allergy to adhesive agent"
+        },
+        "patient": {
+          "reference": "Patient/152"
+        },
+        "onsetDateTime": "2008-03-05T00:00:00+01:00",
+        "recordedDate": "2026-03-19T09:28:30+01:00",
+        "reaction": [
+          {
+            "manifestation": [
+              {
+                "coding": [
+                  {
+                    "system": "http://snomed.info/sct",
+                    "code": "418363000"
+                  }
+                ]
+              }
+            ],
+            "severity": "moderate"
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "AllergyIntolerance"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:3469617052354873259",
+      "resource": {
+        "resourceType": "AllergyIntolerance",
+        "meta": {
+          "profile": [
+            "http://hl7.org/fhir/uv/ips/StructureDefinition/AllergyIntolerance-uv-ips|2.0.0"
+          ]
+        },
+        "text": {
+          "status": "generated",
+          "div": "<div xmlns=***REMOVED***"http://www.w3.org/1999/xhtml***REMOVED***">Allergy to penicillin</div>"
+        },
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical",
+              "code": "active"
+            }
+          ],
+          "text": "Active (qualifier value)"
+        },
+        "type": "allergy",
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "91936005"
+            }
+          ],
+          "text": "Allergy to penicillin"
+        },
+        "patient": {
+          "reference": "Patient/152"
+        },
+        "onsetDateTime": "1998-06-23T00:00:00+02:00",
+        "recordedDate": "2026-03-19T09:38:52+01:00",
+        "reaction": [
+          {
+            "manifestation": [
+              {
+                "coding": [
+                  {
+                    "system": "http://snomed.info/sct",
+                    "code": "39579001"
+                  }
+                ]
+              }
+            ],
+            "severity": "severe"
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "AllergyIntolerance"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:3469613044110198699",
+      "resource": {
+        "resourceType": "Condition",
+        "meta": {
+          "profile": [
+            "http://hl7.org/fhir/uv/ips/StructureDefinition/Condition-uv-ips|2.0.0"
+          ]
+        },
+        "text": {
+          "status": "generated",
+          "div": "<div xmlns=***REMOVED***"http://www.w3.org/1999/xhtml***REMOVED***">Gestational diabetes mellitus</div>"
+        },
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active"
+            }
+          ],
+          "text": "Active (qualifier value)"
+        },
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+                "code": "problem-list-item"
+              }
+            ]
+          }
+        ],
+        "severity": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "6736007",
+              "display": "Moderate (severity modifier) (qualifier value)"
+            }
+          ],
+          "text": "Moderate (severity modifier) (qualifier value)"
+        },
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "11687002"
+            }
+          ],
+          "text": "Gestational diabetes mellitus"
+        },
+        "subject": {
+          "reference": "Patient/152"
+        },
+        "onsetDateTime": "2025-08-28T00:00:00+02:00",
+        "recordedDate": "2026-03-19T09:22:50+01:00"
+      },
+      "request": {
+        "method": "POST",
+        "url": "Condition"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:3469613144391813035",
+      "resource": {
+        "resourceType": "Condition",
+        "meta": {
+          "profile": [
+            "http://hl7.org/fhir/uv/ips/StructureDefinition/Condition-uv-ips|2.0.0"
+          ]
+        },
+        "text": {
+          "status": "generated",
+          "div": "<div xmlns=***REMOVED***"http://www.w3.org/1999/xhtml***REMOVED***">Anemia</div>"
+        },
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active"
+            }
+          ],
+          "text": "Active (qualifier value)"
+        },
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+                "code": "problem-list-item"
+              }
+            ]
+          }
+        ],
+        "severity": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "255604002",
+              "display": "Mild (qualifier value)"
+            }
+          ],
+          "text": "Mild (qualifier value)"
+        },
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "271737000"
+            }
+          ],
+          "text": "Anemia"
+        },
+        "subject": {
+          "reference": "Patient/152"
+        },
+        "onsetDateTime": "2025-08-28T00:00:00+02:00",
+        "recordedDate": "2026-03-19T09:23:34+01:00"
+      },
+      "request": {
+        "method": "POST",
+        "url": "Condition"
+      }
+    }
+  ]
+}

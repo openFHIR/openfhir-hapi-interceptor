@@ -63,18 +63,22 @@ public class OpenEhrCdrClient {
         try {
             final HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                throw new RuntimeException("OpenEHR CDR EHR creation failed with status " + response.statusCode() + ": " + response.body());
+                throw new OpenEhrCdrException("OpenEHR CDR EHR creation failed with status " + response.statusCode(),
+                        response.statusCode(), response.body(), response.headers());
             }
             final String location = response.headers().firstValue("Location")
-                    .orElseThrow(() -> new RuntimeException("OpenEHR CDR EHR creation response missing Location header"));
+                    .orElseThrow(() -> new OpenEhrCdrException("OpenEHR CDR EHR creation response missing Location header",
+                            response.statusCode(), response.body(), response.headers()));
             final String ehrId = location.substring(location.lastIndexOf('/') + 1);
             log.info("OpenEHR CDR EHR created, baseUrl={}, ehrId={}", baseUrl, ehrId);
             return ehrId;
-        } catch (InterruptedException e) {
+        } catch (final OpenEhrCdrException e) {
+            throw e;
+        } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("OpenEHR CDR EHR creation request interrupted", e);
-        } catch (Exception e) {
-            throw new RuntimeException("OpenEHR CDR EHR creation request failed", e);
+            throw new OpenEhrCdrException("OpenEHR CDR EHR creation request interrupted", e);
+        } catch (final Exception e) {
+            throw new OpenEhrCdrException("OpenEHR CDR EHR creation request failed", e);
         }
     }
 
@@ -86,23 +90,26 @@ public class OpenEhrCdrClient {
     public String store(final String openEhrPayload, final String ehrId) {
         final HttpRequest request = newRequestBuilder(String.format(STORE_PATH, ehrId))
                 .header("Content-Type", "application/json")
+                .header("Prefer", "return=representation")
                 .POST(HttpRequest.BodyPublishers.ofString(openEhrPayload))
                 .build();
 
         try {
             final HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                throw new RuntimeException("OpenEHR CDR store failed with status " + response.statusCode() + ": " + response.body());
+                throw new OpenEhrCdrException("OpenEHR CDR store failed with status " + response.statusCode(),
+                        response.statusCode(), response.body(), response.headers());
             }
             final String location = response.headers().firstValue("Location").orElse(null);
-
             log.info("OpenEHR CDR store successful, baseUrl={}, status={}, location={}", baseUrl, response.statusCode(), location);
             return location;
-        } catch (InterruptedException e) {
+        } catch (final OpenEhrCdrException e) {
+            throw e;
+        } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("OpenEHR CDR store request interrupted", e);
-        } catch (Exception e) {
-            throw new RuntimeException("OpenEHR CDR store request failed", e);
+            throw new OpenEhrCdrException("OpenEHR CDR store request interrupted", e);
+        } catch (final Exception e) {
+            throw new OpenEhrCdrException("OpenEHR CDR store request failed", e);
         }
     }
 
@@ -117,15 +124,18 @@ public class OpenEhrCdrClient {
 
             final HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                throw new RuntimeException("OpenEHR CDR AQL query failed with status " + response.statusCode() + ": " + response.body());
+                throw new OpenEhrCdrException("OpenEHR CDR AQL query failed with status " + response.statusCode(),
+                        response.statusCode(), response.body(), response.headers());
             }
             log.info("OpenEHR CDR AQL query successful, baseUrl={}, status={}", baseUrl, response.statusCode());
             return response.body();
-        } catch (InterruptedException e) {
+        } catch (final OpenEhrCdrException e) {
+            throw e;
+        } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("OpenEHR CDR AQL query interrupted", e);
-        } catch (Exception e) {
-            throw new RuntimeException("OpenEHR CDR AQL query failed", e);
+            throw new OpenEhrCdrException("OpenEHR CDR AQL query interrupted", e);
+        } catch (final Exception e) {
+            throw new OpenEhrCdrException("OpenEHR CDR AQL query failed", e);
         }
     }
 

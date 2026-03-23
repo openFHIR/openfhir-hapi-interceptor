@@ -1,0 +1,27 @@
+- id: cadasto
+  name: Cadasto (example)
+  baseUrl: https://cataniamc.api.acc.cadasto.io
+  endpointType: openehr
+  authMethod: oauth2
+  oauth2:
+    tokenUrl: https://cataniamc.auth.acc.cadasto.io/oauth/token
+    clientId: ***REMOVED***
+    clientSecret: ***REMOVED***
+    authMethod: basic
+    extraParams:
+      audience: https://cataniamc.api.acc.cadasto.io/openehr/v1
+
+- id: local
+  name: EHRbase (local)
+  baseUrl: http://ehrbase:8080/ehrbase/rest
+  endpointType: openehr
+  authMethod: basic
+  basicAuth:
+    username: ehrbase-user
+    password: SuperSecretPassword
+
+- id: fhir
+  name: FHIR
+  baseUrl: http://localhost:8080/fhir
+  endpointType: fhir
+  authMethod: none

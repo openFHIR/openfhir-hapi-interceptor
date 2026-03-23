@@ -9,7 +9,7 @@ import com.syntaric.openehr.OpenEhrCdrRegistry;
 import com.syntaric.openfhir.OpenFhirClient;
 import com.syntaric.openfhir.aql.ToAqlRequest;
 import com.syntaric.openfhir.aql.ToAqlResponse;
-import com.syntaric.ips.IPSProcessor;
+import com.syntaric.openehr.OpenEhrAqlUtil;
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -50,16 +50,16 @@ public class QedmSearchInterceptor implements Filter {
     private final PixManager pixManager;
     private final OpenEhrCdrRegistry openEhrCdrRegistry;
     private final OpenFhirClient openFhirClient;
-    private final IPSProcessor ipsProcessor;
+    private final OpenEhrAqlUtil openEhrAqlUtil;
 
     public QedmSearchInterceptor(final PixManager pixManager,
                                  final OpenEhrCdrRegistry openEhrCdrRegistry,
                                  final OpenFhirClient openFhirClient,
-                                 final IPSProcessor ipsProcessor) {
+                                 final OpenEhrAqlUtil openEhrAqlUtil) {
         this.pixManager = pixManager;
         this.openEhrCdrRegistry = openEhrCdrRegistry;
         this.openFhirClient = openFhirClient;
-        this.ipsProcessor = ipsProcessor;
+        this.openEhrAqlUtil = openEhrAqlUtil;
     }
 
     @Bean
@@ -130,7 +130,8 @@ public class QedmSearchInterceptor implements Filter {
         final String fhirPath = buildFhirPath(httpRequest, resourceType);
         log.debug("Resolved fhirPath={} for ehrId={}", fhirPath, ehrId);
 
-        final ToAqlResponse toAqlResponse = openFhirClient.getAql(new ToAqlRequest(TEMPLATE_ID, ehrId, fhirPath));
+        final String reqId = httpRequest.getHeader("x-req-id");
+        final ToAqlResponse toAqlResponse = openFhirClient.getAql(new ToAqlRequest(TEMPLATE_ID, ehrId, fhirPath), reqId);
         if (toAqlResponse.getAqls() == null || toAqlResponse.getAqls().isEmpty()) {
             log.debug("No AQLs returned for fhirPath={}", fhirPath);
             return emptySearchBundle();
@@ -143,14 +144,14 @@ public class QedmSearchInterceptor implements Filter {
                 continue;
             }
             final String openEhrResult = cdrClient.queryAql(aqlResponse.getAql());
-            allRows.addAll(ipsProcessor.extractArchetypeRows(openEhrResult));
+            allRows.addAll(openEhrAqlUtil.extractArchetypeRows(openEhrResult));
         }
 
         if (allRows.isEmpty()) {
             return emptySearchBundle();
         }
 
-        final String fhirJson = openFhirClient.toFhir(allRows);
+        final String fhirJson = openFhirClient.toFhir(allRows, reqId);
         final FhirContext fhirContext = openFhirClient.getFhirContext();
         final Bundle resultBundle = fhirContext.newJsonParser().parseResource(Bundle.class, fhirJson);
 

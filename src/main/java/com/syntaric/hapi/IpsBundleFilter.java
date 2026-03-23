@@ -2,9 +2,12 @@ package com.syntaric.hapi;
 
 import ca.uhn.fhir.context.FhirContext;
 import com.syntaric.PixManager;
+import com.syntaric.ips.IpsAuditRecorder;
 import com.syntaric.openehr.OpenEhrCdrClient;
+import com.syntaric.openehr.OpenEhrCdrException;
 import com.syntaric.openehr.OpenEhrCdrRegistry;
 import com.syntaric.openfhir.OpenFhirClient;
+import com.syntaric.openfhir.OpenFhirException;
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ReadListener;
@@ -19,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Composition;
+import org.hl7.fhir.r4.model.DeviceRequest;
 import org.hl7.fhir.r4.model.Resource;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -29,6 +33,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 
 /**
  * Servlet filter that intercepts IPS Bundle/Composition POSTs before they reach HAPI,
@@ -42,19 +47,24 @@ public class IpsBundleFilter implements Filter {
     private static final String IPS_COMPOSITION_PROFILE =
             "http://hl7.org/fhir/uv/ips/StructureDefinition/Composition-uv-ips";
 
+    private static final String X_REQ_ID_HEADER = "x-req-id";
+
     private final FhirContext fhirContext;
     private final OpenFhirClient openFhirClient;
     private final OpenEhrCdrRegistry openEhrCdrRegistry;
     private final PixManager pixManager;
+    private final IpsAuditRecorder auditRecorder;
 
     public IpsBundleFilter(final FhirContext fhirContext,
                            final OpenFhirClient openFhirClient,
                            final OpenEhrCdrRegistry openEhrCdrRegistry,
-                           final PixManager pixManager) {
+                           final PixManager pixManager,
+                           final IpsAuditRecorder auditRecorder) {
         this.fhirContext = fhirContext;
         this.openFhirClient = openFhirClient;
         this.openEhrCdrRegistry = openEhrCdrRegistry;
         this.pixManager = pixManager;
+        this.auditRecorder = auditRecorder;
     }
 
     @Bean
@@ -106,8 +116,17 @@ public class IpsBundleFilter implements Filter {
         log.info("IPS resource detected on POST ({}), forwarding to OpenEHR CDR — skipping HAPI storage",
                 resource.getClass().getSimpleName());
 
+        final String incomingReqId = httpRequest.getHeader(X_REQ_ID_HEADER);
+        final String reqId = (incomingReqId != null && !incomingReqId.isBlank()) ? incomingReqId : UUID.randomUUID().toString();
+
+        auditRecorder.record(reqId, 1, "step-1-post-bundle",
+                "POST " + httpRequest.getRequestURI() + " — " + resource.getClass().getSimpleName(),
+                body,
+                null,
+                DeviceRequest.RequestIntent.FILLERORDER);
+
         try {
-            final String location = forwardToOpenEhr(resource, httpRequest);
+            final String location = forwardToOpenEhr(resource, httpRequest, reqId);
             httpResponse.setStatus(HttpServletResponse.SC_CREATED);
             if (location != null) {
                 httpResponse.setHeader("Location", location);
@@ -122,7 +141,7 @@ public class IpsBundleFilter implements Filter {
         // do NOT call chain.doFilter — request is fully handled
     }
 
-    private String forwardToOpenEhr(final IBaseResource resource, final HttpServletRequest servletRequest) {
+    private String forwardToOpenEhr(final IBaseResource resource, final HttpServletRequest servletRequest, final String reqId) {
         final String cdrName = servletRequest.getHeader(OpenEhrCdrRegistry.TARGET_CDR_HEADER);
         final String resolvedCdrName = openEhrCdrRegistry.resolveName(cdrName);
         final OpenEhrCdrClient cdrClient = openEhrCdrRegistry.resolve(cdrName);
@@ -144,22 +163,41 @@ public class IpsBundleFilter implements Filter {
                     "Failed to resolve/provision EHR ID for patient " + patientId + " on CDR '" + resolvedCdrName + "': " + e.getMessage(), e);
         }
 
+        final String fhirBundleJson = fhirContext.newJsonParser().encodeResourceToString(toBundle(resource));
         final String openEhrPayload;
         try {
-            openEhrPayload = openFhirClient.convert(toBundle(resource));
-        } catch (final Exception e) {
-            throw new IllegalStateException(
-                    "Failed to convert IPS resource to openEHR payload for patient " + patientId + ": " + e.getMessage(), e);
+            openEhrPayload = openFhirClient.convert(toBundle(resource), reqId);
+        } catch (final OpenFhirException e) {
+            auditRecorder.recordError(reqId, 2, "step-2-toopenehr",
+                    fhirBundleJson,
+                    e.toDetailString(),
+                    reqId,
+                    DeviceRequest.RequestIntent.FILLERORDER);
+            throw e;
         }
+        auditRecorder.record(reqId, 2, "step-2-toopenehr",
+                fhirBundleJson,
+                openEhrPayload,
+                reqId,
+                DeviceRequest.RequestIntent.FILLERORDER);
 
         try {
             final String location = cdrClient.store(openEhrPayload, ehrId);
             log.info("IPS resource forwarded to OpenEHR CDR '{}', location={}, patient={}",
                     resolvedCdrName, location, ehrId);
+            auditRecorder.record(reqId, 3, "step-3-cdr-store",
+                    "ehrId=" + ehrId + ", cdr=" + resolvedCdrName + "***REMOVED***n" + openEhrPayload,
+                    "Location: " + location,
+                    null,
+                    DeviceRequest.RequestIntent.FILLERORDER);
             return location;
-        } catch (final Exception e) {
-            throw new IllegalStateException(
-                    "Failed to store openEHR composition for patient " + patientId + " (ehrId=" + ehrId + ") on CDR '" + resolvedCdrName + "': " + e.getMessage(), e);
+        } catch (final OpenEhrCdrException e) {
+            auditRecorder.recordError(reqId, 3, "step-3-cdr-store",
+                    "ehrId=" + ehrId + ", cdr=" + resolvedCdrName + "***REMOVED***n" + openEhrPayload,
+                    e.toDetailString(),
+                    null,
+                    DeviceRequest.RequestIntent.FILLERORDER);
+            throw e;
         }
     }
 

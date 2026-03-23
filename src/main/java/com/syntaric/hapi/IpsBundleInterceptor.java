@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 @Interceptor
 public class IpsBundleInterceptor {
 
-    public static final String EHRID_SYSTEM = "ehrid";
+    public static final String EHRID_SYSTEM = "http://https://openehr.org/NamingSystem/ehr-id";
 
     // Required by OpenEhrCdrRegistry reference in other classes
     @SuppressWarnings("unused")

@@ -46,15 +46,26 @@ public class PatientInterceptor {
         final String patientId = patient.getIdElement().getIdPart();
         log.info("Patient {} created, provisioning EHR record", patientId);
 
-        final String cdrName = requestDetails.getHeader(OpenEhrCdrRegistry.TARGET_CDR_HEADER);
-        final String resolvedCdrName = openEhrCdrRegistry.resolveName(cdrName);
-        final OpenEhrCdrClient cdrClient = openEhrCdrRegistry.resolve(cdrName);
+        final String cdrHeader = requestDetails.getHeader(OpenEhrCdrRegistry.TARGET_CDR_HEADER);
+        if (cdrHeader == null || cdrHeader.isBlank()) {
+            log.debug("No {} header present, skipping EHR provisioning for patient {}", OpenEhrCdrRegistry.TARGET_CDR_HEADER, patientId);
+            return;
+        }
 
-        try {
-            pixManager.provisionEhrForPatient(patientId, cdrClient, resolvedCdrName);
-        } catch (final Exception e) {
-            log.error("EHR provisioning failed for patient {} — aborting patient creation", patientId, e);
-            throw new InternalErrorException("Failed to provision EHR record in OpenEHR CDR for patient " + patientId, e);
+        final String[] cdrNames = cdrHeader.split(",");
+        for (final String raw : cdrNames) {
+            final String cdrName = raw.trim();
+            if (cdrName.isEmpty()) {
+                continue;
+            }
+            final String resolvedCdrName = openEhrCdrRegistry.resolveName(cdrName);
+            final OpenEhrCdrClient cdrClient = openEhrCdrRegistry.resolve(cdrName);
+            try {
+                pixManager.provisionEhrForPatient(patientId, cdrClient, resolvedCdrName);
+            } catch (final Exception e) {
+                log.error("EHR provisioning failed for patient {} on CDR '{}' — aborting patient creation", patientId, resolvedCdrName, e);
+                throw new InternalErrorException("Failed to provision EHR record in OpenEHR CDR '" + resolvedCdrName + "' for patient " + patientId, e);
+            }
         }
     }
 }
