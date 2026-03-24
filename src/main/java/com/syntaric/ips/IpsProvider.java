@@ -190,6 +190,7 @@ public class IpsProvider {
 
         final Bundle bundle = openFhirClient.getFhirContext().newJsonParser().parseResource(Bundle.class, fhirJson);
         injectPatient(bundle, patient);
+        bundle.getEntryFirstRep().setFullUrl("urn:uuid:" + UUID.randomUUID());
 
         auditRecorder.record(reqId, 1, "step-1-summary",
                 "GET Patient/" + patientIdPart + "/$summary (cdr=" + cdrName + ")",
