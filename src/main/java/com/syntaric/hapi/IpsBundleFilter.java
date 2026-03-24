@@ -5,6 +5,7 @@ import com.syntaric.PixManager;
 import com.syntaric.ips.IpsAuditRecorder;
 import com.syntaric.openehr.OpenEhrCdrClient;
 import com.syntaric.openehr.OpenEhrCdrException;
+import com.syntaric.openehr.OpenEhrCdrFileLoader;
 import com.syntaric.openehr.OpenEhrCdrRegistry;
 import com.syntaric.openfhir.OpenFhirClient;
 import com.syntaric.openfhir.OpenFhirException;
@@ -143,8 +144,9 @@ public class IpsBundleFilter implements Filter {
 
     private String forwardToOpenEhr(final IBaseResource resource, final HttpServletRequest servletRequest, final String reqId) {
         final String cdrName = servletRequest.getHeader(OpenEhrCdrRegistry.TARGET_CDR_HEADER);
-        final String resolvedCdrName = openEhrCdrRegistry.resolveName(cdrName);
-        final OpenEhrCdrClient cdrClient = openEhrCdrRegistry.resolve(cdrName);
+        final OpenEhrCdrFileLoader.CdrEntry cdrEntry = openEhrCdrRegistry.resolveEntry(cdrName);
+        final String resolvedCdrName = cdrEntry.getId();
+        final OpenEhrCdrClient cdrClient = new OpenEhrCdrClient(cdrEntry.getBaseUrl(), cdrEntry.getOauth2(), cdrEntry.getBasicAuth());
 
         final String patientId = extractPatientReferenceIdPart(resource);
         if (patientId == null) {
@@ -181,24 +183,47 @@ public class IpsBundleFilter implements Filter {
                 reqId,
                 DeviceRequest.RequestIntent.FILLERORDER);
 
+        final String effectivePayload = applyTemplateId(openEhrPayload, cdrEntry.getCompositionTemplateId());
+
         try {
-            final String location = cdrClient.store(openEhrPayload, ehrId);
+            final String location = cdrClient.store(effectivePayload, ehrId);
             log.info("IPS resource forwarded to OpenEHR CDR '{}', location={}, patient={}",
                     resolvedCdrName, location, ehrId);
             auditRecorder.record(reqId, 3, "step-3-cdr-store",
-                    "ehrId=" + ehrId + ", cdr=" + resolvedCdrName + "***REMOVED***n" + openEhrPayload,
+                    "ehrId=" + ehrId + ", cdr=" + resolvedCdrName + "***REMOVED***n" + effectivePayload,
                     "Location: " + location,
                     null,
                     DeviceRequest.RequestIntent.FILLERORDER);
             return location;
         } catch (final OpenEhrCdrException e) {
             auditRecorder.recordError(reqId, 3, "step-3-cdr-store",
-                    "ehrId=" + ehrId + ", cdr=" + resolvedCdrName + "***REMOVED***n" + openEhrPayload,
+                    "ehrId=" + ehrId + ", cdr=" + resolvedCdrName + "***REMOVED***n" + effectivePayload,
                     e.toDetailString(),
                     null,
                     DeviceRequest.RequestIntent.FILLERORDER);
             throw e;
         }
+    }
+
+    /**
+     * Replaces the {@code "value"} inside the first {@code "template_id"} object in the
+     * openEHR JSON payload with {@code compositionTemplateId}, if it is non-null and non-blank.
+     * Uses plain string replacement to avoid a full JSON parse/serialise round-trip.
+     */
+    private static String applyTemplateId(final String payload, final String compositionTemplateId) {
+        if (compositionTemplateId == null || compositionTemplateId.isBlank()) {
+            return payload;
+        }
+        // Match: "template_id" whitespace* : whitespace* { whitespace* "value" whitespace* : whitespace* "CURRENT_VALUE"
+        final String replaced = payload.replaceFirst(
+                "(***REMOVED***"template_id***REMOVED***"***REMOVED******REMOVED***s*:***REMOVED******REMOVED***s****REMOVED******REMOVED***{***REMOVED******REMOVED***s****REMOVED***"value***REMOVED***"***REMOVED******REMOVED***s*:***REMOVED******REMOVED***s****REMOVED***")([^***REMOVED***"]*)(***REMOVED***")",
+                "$1" + compositionTemplateId.replace("$", "***REMOVED******REMOVED***$") + "$3");
+        if (replaced.equals(payload)) {
+            log.warn("compositionTemplateId configured but 'template_id.value' pattern not found in payload");
+        } else {
+            log.debug("Replaced template_id.value with '{}'", compositionTemplateId);
+        }
+        return replaced;
     }
 
     private boolean isIpsResource(final IBaseResource resource) {

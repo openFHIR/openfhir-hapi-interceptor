@@ -97,5 +97,11 @@ public class OpenEhrCdrFileLoader {
         private AuthMethod authMethod;
         private ClientCredentialsConfig oauth2 = new ClientCredentialsConfig();
         private BasicAuthConfig basicAuth = new BasicAuthConfig();
+        /**
+         * Optional. When set, replaces the {@code template_id.value} in the openEHR composition
+         * payload before storing. Use when the CDR requires a versioned template id
+         * (e.g. {@code "International Patient Summary::8497168b-16fd-341d-b957-02ae2cd20043"}).
+         */
+        private String compositionTemplateId;
     }
 }

@@ -44,6 +44,15 @@ public class OpenEhrCdrRegistry {
      * Falls back to the first entry when {@code cdrId} is null, blank, or unknown.
      */
     public OpenEhrCdrClient resolve(final String cdrId) {
+        final OpenEhrCdrFileLoader.CdrEntry match = resolveEntry(cdrId);
+        return new OpenEhrCdrClient(match.getBaseUrl(), match.getOauth2(), match.getBasicAuth());
+    }
+
+    /**
+     * Returns the {@link OpenEhrCdrFileLoader.CdrEntry} for the given CDR id.
+     * Falls back to the first entry when {@code cdrId} is null, blank, or unknown.
+     */
+    public OpenEhrCdrFileLoader.CdrEntry resolveEntry(final String cdrId) {
         final List<OpenEhrCdrFileLoader.CdrEntry> entries = fileLoader.load();
 
         OpenEhrCdrFileLoader.CdrEntry match = null;
@@ -68,6 +77,6 @@ public class OpenEhrCdrRegistry {
         }
 
         log.debug("Resolved CDR '{}' → {}", match.getId(), match.getBaseUrl());
-        return new OpenEhrCdrClient(match.getBaseUrl(), match.getOauth2(), match.getBasicAuth());
+        return match;
     }
 }

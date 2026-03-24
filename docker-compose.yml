@@ -1,5 +1,23 @@
 services:
 
+  dashboard:
+    build:
+      context: /home/gandrejc/development/OPENFHIR/openfhir-ips-dashboard
+      dockerfile: Dockerfile.app
+    ports:
+      - "8090:80"
+    depends_on:
+      - config-server
+
+  config-server:
+    build:
+      context: /home/gandrejc/development/OPENFHIR/openfhir-ips-dashboard
+      dockerfile: Dockerfile.config-server
+    volumes:
+      - ./cdrs.yml:/app/sources.yaml
+    ports:
+      - "3001:3001"
+
   hapi:
     build: .
     ports:

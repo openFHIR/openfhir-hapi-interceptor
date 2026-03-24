@@ -4,12 +4,16 @@ import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.interceptor.api.Interceptor;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.syntaric.PixManager;
+import com.syntaric.ips.IpsAuditRecorder;
+import com.syntaric.openehr.OpenEhrAqlUtil;
 import com.syntaric.openehr.OpenEhrCdrClient;
+import com.syntaric.openehr.OpenEhrCdrException;
 import com.syntaric.openehr.OpenEhrCdrRegistry;
 import com.syntaric.openfhir.OpenFhirClient;
+import com.syntaric.openfhir.OpenFhirException;
 import com.syntaric.openfhir.aql.ToAqlRequest;
 import com.syntaric.openfhir.aql.ToAqlResponse;
-import com.syntaric.openehr.OpenEhrAqlUtil;
+import org.hl7.fhir.r4.model.DeviceRequest;
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -28,6 +32,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Intercepts FHIR search GET requests, translates them to openEHR AQLs via OpenFHIR,
@@ -47,19 +52,24 @@ public class QedmSearchInterceptor implements Filter {
             "AllergyIntolerance", "Condition", "MedicationStatement"
     );
 
+    private static final String X_REQ_ID_HEADER = "x-req-id";
+
     private final PixManager pixManager;
     private final OpenEhrCdrRegistry openEhrCdrRegistry;
     private final OpenFhirClient openFhirClient;
     private final OpenEhrAqlUtil openEhrAqlUtil;
+    private final IpsAuditRecorder auditRecorder;
 
     public QedmSearchInterceptor(final PixManager pixManager,
                                  final OpenEhrCdrRegistry openEhrCdrRegistry,
                                  final OpenFhirClient openFhirClient,
-                                 final OpenEhrAqlUtil openEhrAqlUtil) {
+                                 final OpenEhrAqlUtil openEhrAqlUtil,
+                                 final IpsAuditRecorder auditRecorder) {
         this.pixManager = pixManager;
         this.openEhrCdrRegistry = openEhrCdrRegistry;
         this.openFhirClient = openFhirClient;
         this.openEhrAqlUtil = openEhrAqlUtil;
+        this.auditRecorder = auditRecorder;
     }
 
     @Bean
@@ -119,6 +129,9 @@ public class QedmSearchInterceptor implements Filter {
     private Bundle executeSearch(final HttpServletRequest httpRequest,
                                  final String resourceType,
                                  final String patientId) {
+        final String incomingReqId = httpRequest.getHeader(X_REQ_ID_HEADER);
+        final String reqId = (incomingReqId != null && !incomingReqId.isBlank()) ? incomingReqId : UUID.randomUUID().toString();
+
         final String cdrName = httpRequest.getHeader(OpenEhrCdrRegistry.TARGET_CDR_HEADER);
         final String resolvedCdrName = openEhrCdrRegistry.resolveName(cdrName);
 
@@ -130,28 +143,86 @@ public class QedmSearchInterceptor implements Filter {
         final String fhirPath = buildFhirPath(httpRequest, resourceType);
         log.debug("Resolved fhirPath={} for ehrId={}", fhirPath, ehrId);
 
-        final String reqId = httpRequest.getHeader("x-req-id");
-        final ToAqlResponse toAqlResponse = openFhirClient.getAql(new ToAqlRequest(TEMPLATE_ID, ehrId, fhirPath), reqId);
+        // step 1 — record the incoming search request
+        auditRecorder.record(reqId, 1, "step-1-search",
+                "GET " + httpRequest.getRequestURI() + (httpRequest.getQueryString() != null ? "?" + httpRequest.getQueryString() : ""),
+                "resourceType=" + resourceType + ", patientId=" + patientId + ", ehrId=" + ehrId,
+                null,
+                DeviceRequest.RequestIntent.PLAN);
+
+        // step 2 — /openfhir/toaql
+        final String toAqlReqText = "templateId=" + TEMPLATE_ID + ", ehrId=" + ehrId + ", fhirPath=" + fhirPath;
+        final ToAqlResponse toAqlResponse;
+        try {
+            toAqlResponse = openFhirClient.getAql(new ToAqlRequest(TEMPLATE_ID, ehrId, fhirPath), reqId);
+        } catch (final OpenFhirException e) {
+            auditRecorder.recordError(reqId, 2, "step-2-toaql",
+                    toAqlReqText,
+                    e.toDetailString(),
+                    reqId,
+                    DeviceRequest.RequestIntent.PLAN);
+            throw e;
+        }
         if (toAqlResponse.getAqls() == null || toAqlResponse.getAqls().isEmpty()) {
             log.debug("No AQLs returned for fhirPath={}", fhirPath);
+            auditRecorder.record(reqId, 2, "step-2-toaql", toAqlReqText, "no AQLs returned", reqId, DeviceRequest.RequestIntent.PLAN);
             return emptySearchBundle();
         }
+        final StringBuilder toAqlRespText = new StringBuilder();
+        toAqlResponse.getAqls().forEach(a -> toAqlRespText.append("type=").append(a.getType()).append(", aql=").append(a.getAql()).append("***REMOVED***n"));
+        auditRecorder.record(reqId, 2, "step-2-toaql", toAqlReqText, toAqlRespText.toString().trim(), reqId, DeviceRequest.RequestIntent.PLAN);
 
+        // step 3 — trigger AQLs against CDR
         final OpenEhrCdrClient cdrClient = openEhrCdrRegistry.resolve(cdrName);
         final List<JsonNode> allRows = new ArrayList<>();
+        final StringBuilder aqlReqText = new StringBuilder();
+        final StringBuilder aqlRespText = new StringBuilder();
         for (final ToAqlResponse.AqlResponse aqlResponse : toAqlResponse.getAqls()) {
             if (aqlResponse.getType() == ToAqlResponse.AqlType.COMPOSITION) {
                 continue;
             }
-            final String openEhrResult = cdrClient.queryAql(aqlResponse.getAql());
+            aqlReqText.append(aqlResponse.getAql()).append("***REMOVED***n");
+            final String openEhrResult;
+            try {
+                openEhrResult = cdrClient.queryAql(aqlResponse.getAql());
+            } catch (final OpenEhrCdrException e) {
+                auditRecorder.recordError(reqId, 3, "step-3-trigger-aql",
+                        aqlReqText.toString().trim(),
+                        e.toDetailString(),
+                        null,
+                        DeviceRequest.RequestIntent.PLAN);
+                throw e;
+            }
+            aqlRespText.append(openEhrResult).append("***REMOVED***n");
             allRows.addAll(openEhrAqlUtil.extractArchetypeRows(openEhrResult));
+        }
+        if (!aqlReqText.isEmpty()) {
+            auditRecorder.record(reqId, 3, "step-3-trigger-aql",
+                    aqlReqText.toString().trim(),
+                    aqlRespText.toString().trim(),
+                    null,
+                    DeviceRequest.RequestIntent.PLAN);
         }
 
         if (allRows.isEmpty()) {
             return emptySearchBundle();
         }
 
-        final String fhirJson = openFhirClient.toFhir(allRows, reqId);
+        // step 4 — /openfhir/tofhir
+        final String toFhirReqText = allRows.size() + " archetype rows";
+        final String fhirJson;
+        try {
+            fhirJson = openFhirClient.toFhir(allRows, reqId);
+        } catch (final OpenFhirException e) {
+            auditRecorder.recordError(reqId, 4, "step-4-tofhir",
+                    toFhirReqText,
+                    e.toDetailString(),
+                    reqId,
+                    DeviceRequest.RequestIntent.PLAN);
+            throw e;
+        }
+        auditRecorder.record(reqId, 4, "step-4-tofhir", toFhirReqText, fhirJson, reqId, DeviceRequest.RequestIntent.PLAN);
+
         final FhirContext fhirContext = openFhirClient.getFhirContext();
         final Bundle resultBundle = fhirContext.newJsonParser().parseResource(Bundle.class, fhirJson);
 
@@ -162,7 +233,7 @@ public class QedmSearchInterceptor implements Filter {
                 .filter(r -> r != null && resourceType.equals(r.getResourceType().name()))
                 .forEach(r -> {
                     if (r.getIdElement().isEmpty()) {
-                        r.setId(java.util.UUID.randomUUID().toString());
+                        r.setId(UUID.randomUUID().toString());
                     }
                     searchBundle.addEntry().setResource((Resource) r);
                 });
