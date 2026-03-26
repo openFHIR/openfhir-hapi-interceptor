@@ -184,7 +184,16 @@ public class QedmSearchInterceptor implements Filter {
             aqlReqText.append(aqlResponse.getAql()).append("***REMOVED***n");
             final String openEhrResult;
             try {
-                openEhrResult = cdrClient.queryAql(aqlResponse.getAql());
+                String aql = null;
+                try {
+                    aql = aqlResponse.getAql();
+                    if(cdrName.contains("cadasto")) {
+                        aql = aql.replace("FROM EHR e", "FROM EHR e  CONTAINS COMPOSITION c");
+                    }
+                } catch (Exception e) {
+                    log.warn("Exception trying to add contains composition e to cadasto aql {}", e.getMessage());
+                }
+                openEhrResult = cdrClient.queryAql(aql);
             } catch (final OpenEhrCdrException e) {
                 auditRecorder.recordError(reqId, 3, "step-3-trigger-aql",
                         aqlReqText.toString().trim(),

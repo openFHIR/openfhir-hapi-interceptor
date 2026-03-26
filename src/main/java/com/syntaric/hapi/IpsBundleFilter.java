@@ -20,6 +20,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Composition;
@@ -90,6 +91,12 @@ public class IpsBundleFilter implements Filter {
         // cheap path check — only Bundle and Composition POSTs can be IPS
         final String path = httpRequest.getRequestURI();
         if (!path.endsWith("/fhir") && !path.endsWith("/Composition")) {
+            chain.doFilter(request, response);
+            return;
+        }
+
+        final String cdrName = ((HttpServletRequest) request).getHeader(OpenEhrCdrRegistry.TARGET_CDR_HEADER);
+        if ("fhir".equalsIgnoreCase(cdrName) || StringUtils.isEmpty(cdrName)) {
             chain.doFilter(request, response);
             return;
         }

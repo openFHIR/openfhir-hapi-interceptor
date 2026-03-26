@@ -1,5 +1,6 @@
 package com.syntaric.ips;
 
+import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.jpa.api.dao.DaoRegistry;
 import ca.uhn.fhir.jpa.searchparam.SearchParameterMap;
 import ca.uhn.fhir.rest.annotation.IdParam;
@@ -19,6 +20,7 @@ import com.syntaric.openfhir.OpenFhirException;
 import com.syntaric.openfhir.aql.ToAqlRequest;
 import com.syntaric.openfhir.aql.ToAqlResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.*;
 import org.springframework.stereotype.Component;
@@ -73,7 +75,7 @@ public class IpsProvider {
 
         // (2) fork on cdr name
         final String cdrName = requestDetails.getHeader(OpenEhrCdrRegistry.TARGET_CDR_HEADER);
-        if ("fhir".equalsIgnoreCase(cdrName)) {
+        if ("fhir".equalsIgnoreCase(cdrName) || StringUtils.isEmpty(cdrName)) {
             log.info("CDR is 'fhir', using local FHIR DB for patient {}", patientIdPart);
             final Bundle result = fhirSummary(patientId, patient);
             auditRecorder.record(reqId, 1, "step-1-summary",
@@ -133,7 +135,16 @@ public class IpsProvider {
                 aqlReqText.append(aqlResponse.getAql()).append("***REMOVED***n");
                 final String openEhrResult;
                 try {
-                    openEhrResult = cdrClient.queryAql(aqlResponse.getAql());
+                    String aql = null;
+                    try {
+                        aql = aqlResponse.getAql();
+                        if(cdrName.contains("cadasto")) {
+                            aql = aql.replace("FROM EHR e", "FROM EHR e  CONTAINS COMPOSITION c");
+                        }
+                    } catch (Exception e) {
+                        log.warn("Exception trying to add contains composition e to cadasto aql {}", e.getMessage());
+                    }
+                    openEhrResult = cdrClient.queryAql(aql);
                 } catch (final OpenEhrCdrException e) {
                     auditRecorder.recordError(reqId, 3, "step-3-trigger-aql-" + fhirPath,
                             aqlReqText.toString().trim(),
@@ -183,14 +194,16 @@ public class IpsProvider {
                     DeviceRequest.RequestIntent.PLAN);
             throw e;
         }
-        auditRecorder.record(reqId, 4, "step-4-tofhir",
-                toFhirReqText,
-                fhirJson,
-                reqId);
+
 
         final Bundle bundle = openFhirClient.getFhirContext().newJsonParser().parseResource(Bundle.class, fhirJson);
         injectPatient(bundle, patient);
         bundle.getEntryFirstRep().setFullUrl("urn:uuid:" + UUID.randomUUID());
+
+        auditRecorder.record(reqId, 4, "step-4-tofhir",
+                toFhirReqText,
+                FhirContext.forR4Cached().newJsonParser().encodeResourceToString(bundle),
+                reqId);
 
         auditRecorder.record(reqId, 1, "step-1-summary",
                 "GET Patient/" + patientIdPart + "/$summary (cdr=" + cdrName + ")",

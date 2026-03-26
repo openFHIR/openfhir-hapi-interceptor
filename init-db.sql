@@ -1,10 +1,6 @@
--- Create OpenFHIR database and user
-CREATE DATABASE openfhir;
-CREATE USER openfhir WITH ENCRYPTED PASSWORD 'openfhir';
-GRANT ALL PRIVILEGES ON DATABASE openfhir TO openfhir;
-
--- Ensure the users can connect and create objects within their databases
-ALTER DATABASE openfhir OWNER TO openfhir;
-
--- Grant privileges to schemas (optional but recommended)
-ALTER ROLE openfhir SET search_path TO public;
+-- Create HAPI FHIR database and user
+CREATE DATABASE hapi;
+CREATE USER hapi WITH ENCRYPTED PASSWORD 'hapi';
+GRANT ALL PRIVILEGES ON DATABASE hapi TO hapi;
+ALTER DATABASE hapi OWNER TO hapi;
+ALTER ROLE hapi SET search_path TO public;
