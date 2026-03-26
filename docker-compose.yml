@@ -27,6 +27,8 @@ services:
       - "8090:80"
     depends_on:
       - config-server
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   config-server:
     build:
