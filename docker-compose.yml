@@ -1,67 +1,27 @@
 services:
-
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - certbot-www:/var/www/certbot:ro
-      - certbot-certs:/etc/letsencrypt:ro
-    depends_on:
-      - dashboard
-
-  certbot:
-    image: certbot/certbot
-    volumes:
-      - certbot-www:/var/www/certbot
-      - certbot-certs:/etc/letsencrypt
-    entrypoint: /bin/sh -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done"
-
-  dashboard:
-    build:
-      context: ../openfhir-ips-dashboard
-      dockerfile: Dockerfile.app
-    ports:
-      - "8090:80"
-    depends_on:
-      - config-server
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-
-  config-server:
-    build:
-      context: ../openfhir-ips-dashboard
-      dockerfile: Dockerfile.config-server
-    volumes:
-      - ./cdrs.yml:/app/sources.yaml
-    ports:
-      - "3001:3001"
-
-  hapi:
+  openfhir-hapi-interceptor-hapi:
     build: .
     ports:
       - "8080:8080"
       - "5005:5005"
     volumes:
       - ./application.yml:/app/config/application.yml:ro
-      - ./cdrs.yml:/etc/openfhir/cdrs.yml
+      - ./cdrs.yml:/etc/cdrs.yml
     environment:
       JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
     depends_on:
-      ehrbase-postgres:
+      openfhir-hapi-interceptor-ehrbase-postgres:
         condition: service_healthy
 
-  ehrbase:
+  openfhir-hapi-interceptor-ehrbase:
     image: ehrbase/ehrbase
     depends_on:
-      - ehrbase-postgres
+      - openfhir-hapi-interceptor-ehrbase-postgres
     ports:
       - 8082:8080
     environment:
       - SECURITY_AUTHTYPE=BASIC
-      - DB_URL=jdbc:postgresql://ehrbase-postgres:5432/ehrbase
+      - DB_URL=jdbc:postgresql://openfhir-hapi-interceptor-ehrbase-postgres:5432/ehrbase
       - DB_USER=ehrbase_restricted
       - DB_PASS=ehrbase_restricted
       - DB_USER_ADMIN=ehrbase
@@ -69,8 +29,8 @@ services:
       - SERVER_NODENAME=local.ehrbase.org
       - SPRING_PROFILES_ACTIVE=local
 
-  ehrbase-postgres:
-    container_name: ehrbase-postgres
+  openfhir-hapi-interceptor-ehrbase-postgres:
+    container_name: openfhir-hapi-interceptor-ehrbase-postgres
     image: ehrbase/ehrbase-v2-postgres:16.2
     ports:
       - 5439:5432
@@ -83,7 +43,7 @@ services:
       - EHRBASE_PASSWORD_ADMIN=ehrbase
     volumes:
       - ./init-db.sql:/docker-entrypoint-initdb.d/02-hapi.sql:ro
-      - db-data:/var/lib/postgresql/data
+      - openfhir-hapi-interceptor-db-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -91,6 +51,4 @@ services:
       retries: 10
 
 volumes:
-  db-data:
-  certbot-www:
-  certbot-certs:
+  openfhir-hapi-interceptor-db-data:

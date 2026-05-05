@@ -8,15 +8,19 @@ import com.syntaric.auth.ClientCredentialsTokenProvider;
 import com.syntaric.openfhir.aql.ToAqlRequest;
 import com.syntaric.openfhir.aql.ToAqlResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.springframework.stereotype.Component;
 
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.UUID;
+
+import static java.nio.charset.Charset.defaultCharset;
 
 @Component
 @Slf4j
@@ -27,23 +31,22 @@ public class OpenFhirClient {
     private static final String TO_FHIR_PATH = "/openfhir/tofhir";
 
     private final HttpClient httpClient;
+
     private final FhirContext fhirContext;
+
     private final ObjectMapper objectMapper;
     private final OpenFhirProperties properties;
     private final ClientCredentialsTokenProvider tokenProvider;
 
-    public OpenFhirClient(final OpenFhirProperties properties) {
+    public OpenFhirClient(final OpenFhirProperties properties,
+                          final FhirContext fhirContext) {
         this.properties = properties;
         this.httpClient = HttpClient.newHttpClient();
-        this.fhirContext = FhirContext.forR4();
         this.objectMapper = new ObjectMapper();
+        this.fhirContext = fhirContext;
         this.tokenProvider = properties.getOauth2().isConfigured()
                 ? new ClientCredentialsTokenProvider(properties.getOauth2())
                 : null;
-    }
-
-    public FhirContext getFhirContext() {
-        return fhirContext;
     }
 
     public String convert(final IBaseResource resource, final String reqId) {
@@ -99,9 +102,10 @@ public class OpenFhirClient {
         }
     }
 
-    public String toFhir(final String openEhrQueryResult, final String reqId) {
+    public String toFhir(final String openEhrQueryResult, final String reqId, final String templateId) {
         try {
-            final HttpRequest request = newRequestBuilder(TO_FHIR_PATH + "?templateId=International+Patient+Summary", reqId)
+            final String templateIdQueryParam = StringUtils.isEmpty(templateId) ? "" : String.format("?templateId=%s", URLEncoder.encode(templateId, defaultCharset()));
+            final HttpRequest request = newRequestBuilder(TO_FHIR_PATH + templateIdQueryParam, reqId)
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(openEhrQueryResult))
                     .build();
@@ -123,10 +127,10 @@ public class OpenFhirClient {
         }
     }
 
-    public String toFhir(final List<JsonNode> archetypeRows, final String reqId) {
+    public String toFhir(final List<JsonNode> archetypeRows, final String reqId, final String templateId) {
         try {
             final String payload = objectMapper.writeValueAsString(archetypeRows);
-            return toFhir(payload, reqId);
+            return toFhir(payload, reqId, templateId);
         } catch (final OpenFhirException e) {
             throw e;
         } catch (final Exception e) {

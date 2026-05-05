@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:postgresql://ehrbase-postgres:5432/hapi
+    url: jdbc:postgresql://openfhir-hapi-interceptor-ehrbase-postgres:5432/hapi
     username: hapi
     password: hapi
     driverClassName: org.postgresql.Driver
@@ -16,18 +16,40 @@ hapi:
     fhir_version: R4
     server_address: http://localhost:8080/fhir
     custom_bean_packages: com.syntaric
-    custom_interceptor_classes: >-
-      com.syntaric.hapi.QedmSearchInterceptor,
-      com.syntaric.hapi.IpsBundleInterceptor,
-      com.syntaric.hapi.PatientInterceptor
+    custom_interceptor_classes: com.syntaric.hapi.PatientInterceptor
 
 openfhir:
-#  base-url: http://openfhir-enterprise:8080
   base-url: https://sandbox.open-fhir.com
   oauth2:                          # uncomment to enable client_credentials for OpenFHIR
-   token-url: https://sandbox.open-fhir.com/auth/realms/open-fhir/protocol/openid-connect/token
-   client-id: ***REMOVED***
-   client-secret: YOUR_SECRET_HERE
+    token-url: https://sandbox.open-fhir.com/auth/realms/open-fhir/protocol/openid-connect/token
+    client-id: your-openfhir-sandbox-client-id
+    client-secret: your-openfhir-sandbox-client-secret
 
-openehr:
-  cdrs-config-file: /etc/openfhir/cdrs.yml
+
+# Profiles that trigger the OpenEHR store flow (FhirCreateFilter).
+# Any POST whose resource meta.profile matches one of these URLs is forwarded to the CDR.
+interceptor:
+  # Profiles that trigger the OpenEHR store flow (FhirCreateFilter).
+  # Any POST whose resource meta.profile matches one of these URLs is forwarded to the CDR.
+  fhir-create-filter:
+    intercepted-profiles:
+      - http://hl7.org/fhir/uv/ips/StructureDefinition/Composition-uv-ips
+
+  # Rules that trigger the OpenEHR query flow (FhirQueryFilter).
+  # Rules are evaluated in order; the first match wins.
+  # Use _resourceType to match the last path segment of the URI.
+  # Use * as a value to match any non-absent value.
+  fhir-query-filter:
+    rules:
+      - template-id: EPS Patient Summary
+        fhir-query:
+          _resourceType: AllergyIntolerance
+      - template-id: International Patient Summary
+        fhir-query:
+          _resourceType: Condition
+          verification-status: confirmed
+      - template-id: International Patient Summary
+        fhir-query:
+          _resourceType: MedicationStatement
+
+  cdrs-config-file: /etc/cdrs.yml

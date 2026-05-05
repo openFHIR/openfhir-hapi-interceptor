@@ -22,7 +22,6 @@ import java.util.List;
  * - id: local
  *   name: EHRbase (local)
  *   baseUrl: http://ehrbase:8080/ehrbase/rest
- *   endpointType: openehr
  *   authMethod: basic
  *   basicAuth:
  *     username: ehrbase-user
@@ -31,7 +30,6 @@ import java.util.List;
  * - id: cadasto
  *   name: Cadasto
  *   baseUrl: https://cadasto.example.com
- *   endpointType: openehr
  *   authMethod: oauth2
  *   oauth2:
  *     tokenUrl: https://auth.example.com/token
@@ -49,7 +47,7 @@ public class OpenEhrCdrFileLoader {
 
     private final String configFilePath;
 
-    public OpenEhrCdrFileLoader(final OpenEhrCdrProperties properties) {
+    public OpenEhrCdrFileLoader(final com.syntaric.InterceptorProperties properties) {
         this.configFilePath = properties.getCdrsConfigFile();
     }
 
@@ -61,7 +59,7 @@ public class OpenEhrCdrFileLoader {
     public List<CdrEntry> load() {
         if (configFilePath == null || configFilePath.isBlank()) {
             throw new IllegalStateException(
-                    "openehr.cdrs-config-file is not set. Provide a path to the CDR config YAML file.");
+                    "interceptor.cdrs-config-file is not set. Provide a path to the CDR config YAML file.");
         }
 
         final File file = new File(configFilePath);
@@ -85,7 +83,6 @@ public class OpenEhrCdrFileLoader {
         }
     }
 
-    public enum EndpointType { FHIR, OPENEHR }
     public enum AuthMethod { NONE, BASIC, OAUTH2 }
 
     @Data
@@ -93,15 +90,8 @@ public class OpenEhrCdrFileLoader {
         private String id;
         private String name;
         private String baseUrl;
-        private EndpointType endpointType;
         private AuthMethod authMethod;
         private ClientCredentialsConfig oauth2 = new ClientCredentialsConfig();
         private BasicAuthConfig basicAuth = new BasicAuthConfig();
-        /**
-         * Optional. When set, replaces the {@code template_id.value} in the openEHR composition
-         * payload before storing. Use when the CDR requires a versioned template id
-         * (e.g. {@code "International Patient Summary::8497168b-16fd-341d-b957-02ae2cd20043"}).
-         */
-        private String compositionTemplateId;
     }
 }

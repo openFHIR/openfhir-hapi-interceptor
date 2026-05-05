@@ -1,55 +1,27 @@
-- id: cadasto
-  name: Cadasto
-  baseUrl: https://cataniamc.api.acc.cadasto.io
-  endpointType: openehr
-  authMethod: oauth2
-  compositionTemplateId: "International Patient Summary::8497168b-16fd-341d-b957-02ae2cd20043"
-  oauth2:
-    tokenUrl: https://cataniamc.auth.acc.cadasto.io/oauth/token
-    clientId: ***REMOVED***
-    clientSecret: ***REMOVED***
-    authMethod: basic
-    extraParams:
-      audience: https://cataniamc.api.acc.cadasto.io/openehr/v1
 - id: local
   name: EHRbase (local)
-  baseUrl: http://ehrbase:8080/ehrbase/rest
-  endpointType: openehr
+  baseUrl: http://openfhir-hapi-interceptor-ehrbase:8080/ehrbase/rest
   authMethod: basic
   basicAuth:
     username: ehrbase-user
     password: SuperSecretPassword
-- id: fhir
-  name: FHIR
-  baseUrl: http://localhost:8080/fhir
-  endpointType: fhir
-  authMethod: none
-- id: ece5714b-3a0b-4a14-bf1b-3f8af89eb214
-  name: Code4Health
-  baseUrl: https://cdr.code4health.org/rest
-  endpointType: openehr
+
+- id: remote-oauth2
+  name: Remote CDR (OAuth2)
+  baseUrl: https://cdr.example.com/rest
+  authMethod: oauth2
+  oauth2:
+    tokenUrl: https://auth.example.com/oauth/token
+    clientId: my-client-id
+    clientSecret: my-client-secret
+    authMethod: basic
+    extraParams:
+      audience: https://cdr.example.com/openehr/v1
+
+- id: remote-basic
+  name: Remote CDR (Basic Auth)
+  baseUrl: https://cdr2.example.com/rest
   authMethod: basic
   basicAuth:
-    username: ***REMOVED***
-    password: ***REMOVED***
-  oauth2:
-    tokenUrl: ''
-    clientId: ''
-    clientSecret: ''
-    authMethod: basic
-    extraParams: {}
-- id: studio
-  name: Better Studio
-  baseUrl: https://cloud.better.care/ehr/rest
-  endpointType: openehr
-  authMethod: OAUTH2
-  oauth2:
-    tokenUrl: https://studio.better.care/auth/realms/studio/protocol/openid-connect/token
-    clientId: studio-fe
-    clientSecret: 'dummy'
-    scope: openid profile
-    authMethod: BODY
-    extraParams:
-      grant_type: password
-      username: ***REMOVED***
-      password: ***REMOVED***
+    username: my-username
+    password: my-password

@@ -7,14 +7,11 @@ import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.api.server.SystemRequestDetails;
 import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
-import com.syntaric.hapi.IpsBundleInterceptor;
+import com.syntaric.openehr.Constants;
 import com.syntaric.openehr.OpenEhrCdrClient;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.instance.model.api.IBaseResource;
-import org.hl7.fhir.r4.model.Identifier;
-import org.hl7.fhir.r4.model.IdType;
-import org.hl7.fhir.r4.model.Patient;
-import org.hl7.fhir.r4.model.Reference;
+import org.hl7.fhir.r4.model.*;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -85,7 +82,7 @@ public class PixManager {
 
     /**
      * Creates a new EHR in the given CDR and stores the resulting EHR ID on the patient
-     * as an identifier with system {@value IpsBundleInterceptor#EHRID_SYSTEM} and assigner
+     * as an identifier with system {@value Constants#EHRID_SYSTEM} and assigner
      * display set to {@code resolvedCdrName}.
      *
      * @param patientId       FHIR logical ID of the patient to update
@@ -93,18 +90,19 @@ public class PixManager {
      * @param resolvedCdrName canonical CDR name to store as assigner display
      * @return the newly created EHR ID
      */
-    public String provisionEhrForPatient(final String patientId, final OpenEhrCdrClient cdrClient, final String resolvedCdrName) {
+    public Identifier provisionEhrForPatient(final String patientId, final OpenEhrCdrClient cdrClient, final String resolvedCdrName) {
         final String ehrId = cdrClient.createEhr();
         log.info("EHR created for patient {}, ehrId={}, cdr={}", patientId, ehrId, resolvedCdrName);
 
-        final Patient patient = patientDao().read(new IdType("Patient", patientId), new SystemRequestDetails());
-        patient.addIdentifier(new Identifier()
-                .setSystem(IpsBundleInterceptor.EHRID_SYSTEM)
+        final Patient patient = patientDao().read(new IdType(ResourceType.Patient.name(), patientId), new SystemRequestDetails());
+        final Identifier ehrIdIdentifier = new Identifier()
+                .setSystem(Constants.EHRID_SYSTEM)
                 .setValue(ehrId)
-                .setAssigner(new Reference().setDisplay(resolvedCdrName)));
+                .setAssigner(new Reference().setDisplay(resolvedCdrName));
+        patient.addIdentifier(ehrIdIdentifier);
         patientDao().update(patient, new SystemRequestDetails());
         log.info("Patient {} updated with ehrId={} for cdr={}", patientId, ehrId, resolvedCdrName);
-        return ehrId;
+        return ehrIdIdentifier;
     }
 
     private Optional<String> extractIdentifier(final Patient patient, final String targetSystem, final String cdrName) {
