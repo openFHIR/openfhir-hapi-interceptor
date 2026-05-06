@@ -1,5 +1,7 @@
 ![openfhir-logo](logo.png)
 
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+
 # openFHIR HAPI Interceptor
 
 This project is a HAPI FHIR server filter/interceptor that transparently routes clinical data between FHIR
@@ -14,6 +16,8 @@ Compositions and vice versa using configurable template-based mappings.
 > This is simply an interceptor designed to operate on an already running HAPI FHIR server. It is not intended to modify
 > or customize HAPI itself, but rather to make use of HAPI’s established request interception patterns. See "How to use it"
 > section before on how you can use it within your HAPI server.
+
+> See https://github.com/openFHIR/openfhir-firely-plugin if you're looking for a Firely Plugin.
 
 ## How it works
 
@@ -80,9 +84,9 @@ register. Add the following to your `application.yml`:
 
 ```yaml
 hapi:
-  fhir:
-    custom_bean_packages: com.syntaric          # scans all beans in this project
-    custom_interceptor_classes: com.syntaric.hapi.PatientInterceptor
+   fhir:
+      custom_bean_packages: com.syntaric          # scans all beans in this project
+      custom_interceptor_classes: com.syntaric.hapi.PatientInterceptor
 ```
 
 ### Running a whole stack with Docker Compose
@@ -92,13 +96,13 @@ PostgreSQL database:
 
 ```yaml
 services:
-  hapi:
-    build: .
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./application.yml:/app/config/application.yml:ro
-      - ./cdrs.yml:/etc/cdrs.yml
+   hapi:
+      build: .
+      ports:
+         - "8080:8080"
+      volumes:
+         - ./application.yml:/app/config/application.yml:ro
+         - ./cdrs.yml:/etc/cdrs.yml
 ```
 
 The `application.yml` is mounted as HAPI's configuration file. The `cdrs.yml` is mounted at the
@@ -141,21 +145,21 @@ Example configurations: [cdrs.yml](cdrs.yml).
   baseUrl: http://ehrbase:8080/ehrbase/rest  # base REST URL of the CDR
   authMethod: basic                   # none | basic | oauth2
   basicAuth:
-    username: ehrbase-user
-    password: secret
+     username: ehrbase-user
+     password: secret
 
 - id: remote
   name: Cadasto
   baseUrl: https://cadasto.example.com
   authMethod: oauth2
   oauth2:
-    tokenUrl: https://auth.example.com/token
-    clientId: my-client
-    clientSecret: my-secret
-    scope: openid profile              # optional, space-separated
-    authMethod: body                   # body (default) or basic — how credentials are sent to the token endpoint
-    extraParams:                       # optional extra key/value pairs added to the token request body
-      audience: cadasto-api
+     tokenUrl: https://auth.example.com/token
+     clientId: my-client
+     clientSecret: my-secret
+     scope: openid profile              # optional, space-separated
+     authMethod: body                   # body (default) or basic — how credentials are sent to the token endpoint
+     extraParams:                       # optional extra key/value pairs added to the token request body
+        audience: cadasto-api
 ```
 
 **CDR entry fields:**
