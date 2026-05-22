@@ -224,7 +224,7 @@
             },
             "text": {
               "status": "generated",
-              "div": "<div xmlns=***REMOVED***"http://www.w3.org/1999/xhtml***REMOVED***">Hot flushes</div>"
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Hot flushes</div>"
             },
             "entry": [
               {
@@ -257,7 +257,7 @@
             },
             "text": {
               "status": "generated",
-              "div": "<div xmlns=***REMOVED***"http://www.w3.org/1999/xhtml***REMOVED***">Hot flushes</div>"
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Hot flushes</div>"
             },
             "entry": [
               {

@@ -8,7 +8,7 @@
   },
   "text": {
     "status": "generated",
-    "div": "<div xmlns=***REMOVED***"http://www.w3.org/1999/xhtml***REMOVED***"><p class=***REMOVED***"res-header-id***REMOVED***"><b>Generated Narrative: Composition composition-minimal</b></p><a name=***REMOVED***"composition-minimal***REMOVED***"> </a><a name=***REMOVED***"hccomposition-minimal***REMOVED***"> </a><div style=***REMOVED***"display: inline-block; background-color: #d9e0e7; padding: 6px; margin: 4px; border: 1px solid #8da1b4; border-radius: 5px; line-height: 60%***REMOVED***"><p style=***REMOVED***"margin-bottom: 0px***REMOVED***"/><p style=***REMOVED***"margin-bottom: 0px***REMOVED***">Profile: <a href=***REMOVED***"StructureDefinition-Composition-uv-ips.html***REMOVED***">Composition (IPS)</a></p></div><p><b>status</b>: Final</p><p><b>type</b>: <span title=***REMOVED***"Codes:{http://loinc.org 60591-5}***REMOVED***">Patient summary Document</span></p><p><b>date</b>: 2020-12-11 14:30:00+0100</p><p><b>author</b>: <a href=***REMOVED***"Practitioner-152.html***REMOVED***">Practitioner Mark Antonio </a></p><p><b>title</b>: Patient Summary as of December 11, 2020 14:30</p><p><b>confidentiality</b>: normal</p><blockquote><p><b>attester</b></p><p><b>mode</b>: Legal</p><p><b>time</b>: 2020-12-11 14:30:00+0100</p><p><b>party</b>: <a href=***REMOVED***"Practitioner-152.html***REMOVED***">Practitioner Mark Antonio </a></p></blockquote><blockquote><p><b>attester</b></p><p><b>mode</b>: Legal</p><p><b>time</b>: 2020-12-11 14:30:00+0100</p><p><b>party</b>: <a href=***REMOVED***"Organization-simple-org.html***REMOVED***">Organization Best Diagnostic Department</a></p></blockquote><p><b>custodian</b>: <a href=***REMOVED***"Organization-simple-org.html***REMOVED***">Organization Best Diagnostic Department</a></p><h3>RelatesTos</h3><table class=***REMOVED***"grid***REMOVED***"><tr><td style=***REMOVED***"display: none***REMOVED***">-</td><td><b>Code</b></td><td><b>Target[x]</b></td></tr><tr><td style=***REMOVED***"display: none***REMOVED***">*</td><td>Appends</td><td><code>urn:oid:2.16.724.4.8.10.200.10</code>/20e12ce3-857f-49c0-b888-cb670597f191</td></tr></table><h3>Events</h3><table class=***REMOVED***"grid***REMOVED***"><tr><td style=***REMOVED***"display: none***REMOVED***">-</td><td><b>Code</b></td><td><b>Period</b></td></tr><tr><td style=***REMOVED***"display: none***REMOVED***">*</td><td><span title=***REMOVED***"Codes:{http://terminology.hl7.org/CodeSystem/v3-ActClass PCPR}***REMOVED***">care provision</span></td><td>?? --&gt; 2020-12-11 14:30:00+0100</td></tr></table></div>"
+    "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p class=\"res-header-id\"><b>Generated Narrative: Composition composition-minimal</b></p><a name=\"composition-minimal\"> </a><a name=\"hccomposition-minimal\"> </a><div style=\"display: inline-block; background-color: #d9e0e7; padding: 6px; margin: 4px; border: 1px solid #8da1b4; border-radius: 5px; line-height: 60%\"><p style=\"margin-bottom: 0px\"/><p style=\"margin-bottom: 0px\">Profile: <a href=\"StructureDefinition-Composition-uv-ips.html\">Composition (IPS)</a></p></div><p><b>status</b>: Final</p><p><b>type</b>: <span title=\"Codes:{http://loinc.org 60591-5}\">Patient summary Document</span></p><p><b>date</b>: 2020-12-11 14:30:00+0100</p><p><b>author</b>: <a href=\"Practitioner-152.html\">Practitioner Mark Antonio </a></p><p><b>title</b>: Patient Summary as of December 11, 2020 14:30</p><p><b>confidentiality</b>: normal</p><blockquote><p><b>attester</b></p><p><b>mode</b>: Legal</p><p><b>time</b>: 2020-12-11 14:30:00+0100</p><p><b>party</b>: <a href=\"Practitioner-152.html\">Practitioner Mark Antonio </a></p></blockquote><blockquote><p><b>attester</b></p><p><b>mode</b>: Legal</p><p><b>time</b>: 2020-12-11 14:30:00+0100</p><p><b>party</b>: <a href=\"Organization-simple-org.html\">Organization Best Diagnostic Department</a></p></blockquote><p><b>custodian</b>: <a href=\"Organization-simple-org.html\">Organization Best Diagnostic Department</a></p><h3>RelatesTos</h3><table class=\"grid\"><tr><td style=\"display: none\">-</td><td><b>Code</b></td><td><b>Target[x]</b></td></tr><tr><td style=\"display: none\">*</td><td>Appends</td><td><code>urn:oid:2.16.724.4.8.10.200.10</code>/20e12ce3-857f-49c0-b888-cb670597f191</td></tr></table><h3>Events</h3><table class=\"grid\"><tr><td style=\"display: none\">-</td><td><b>Code</b></td><td><b>Period</b></td></tr><tr><td style=\"display: none\">*</td><td><span title=\"Codes:{http://terminology.hl7.org/CodeSystem/v3-ActClass PCPR}\">care provision</span></td><td>?? --&gt; 2020-12-11 14:30:00+0100</td></tr></table></div>"
   },
   "status": "final",
   "type": {
@@ -90,7 +90,7 @@
       },
       "text": {
         "status": "generated",
-        "div": "<div xmlns=***REMOVED***"http://www.w3.org/1999/xhtml***REMOVED***"><ul><li><div><b>Condition Name</b>: Acute myocardial infarction of anterior wall</div><div><b>Code</b>: <span>54329005</span></div><div><b>Status</b>: <span>Active</span></div></li></ul></div>"
+        "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><ul><li><div><b>Condition Name</b>: Acute myocardial infarction of anterior wall</div><div><b>Code</b>: <span>54329005</span></div><div><b>Status</b>: <span>Active</span></div></li></ul></div>"
       },
       "entry": [
         {
@@ -111,7 +111,7 @@
       },
       "text": {
         "status": "generated",
-        "div": "<div xmlns=***REMOVED***"http://www.w3.org/1999/xhtml***REMOVED***"><ul><li><div><b>Allergy Name</b>: No known allergies</div><div><b>Verification Status</b>: Confirmed</div><div><b>Reaction</b>: <span>no information</span></div></li></ul></div>"
+        "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><ul><li><div><b>Allergy Name</b>: No known allergies</div><div><b>Verification Status</b>: Confirmed</div><div><b>Reaction</b>: <span>no information</span></div></li></ul></div>"
       },
       "entry": [
         {
@@ -132,7 +132,7 @@
       },
       "text": {
         "status": "generated",
-        "div": "<div xmlns=***REMOVED***"http://www.w3.org/1999/xhtml***REMOVED***"><ul><li><div><b>Medication Name</b>: Simvastatin 40 MG Disintegrating Oral Tablet</div><div><b>Code</b>: <span>C10AA01</span></div><div><b>Status</b>: <span>Active, started 2014</span></div><div>Instructions: Take 40 mg/day</div></li></ul></div>"
+        "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><ul><li><div><b>Medication Name</b>: Simvastatin 40 MG Disintegrating Oral Tablet</div><div><b>Code</b>: <span>C10AA01</span></div><div><b>Status</b>: <span>Active, started 2014</span></div><div>Instructions: Take 40 mg/day</div></li></ul></div>"
       },
       "entry": [
         {

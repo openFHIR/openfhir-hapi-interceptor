@@ -34,9 +34,9 @@ public class OpenEhrCdrException extends RuntimeException {
     public String toDetailString() {
         final StringBuilder sb = new StringBuilder();
         sb.append("status=").append(statusCode < 0 ? "N/A" : statusCode);
-        if (responseBody != null) sb.append("***REMOVED***nbody=").append(responseBody);
-        if (responseHeaders != null) sb.append("***REMOVED***nheaders=").append(responseHeaders.map());
-        if (getCause() != null) sb.append("***REMOVED***ncause=").append(getCause().getMessage());
+        if (responseBody != null) sb.append("\nbody=").append(responseBody);
+        if (responseHeaders != null) sb.append("\nheaders=").append(responseHeaders.map());
+        if (getCause() != null) sb.append("\ncause=").append(getCause().getMessage());
         return sb.toString();
     }
 }

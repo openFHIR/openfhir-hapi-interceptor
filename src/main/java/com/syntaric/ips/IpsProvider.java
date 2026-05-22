@@ -30,7 +30,17 @@ public class IpsProvider {
 
     private static final String TEMPLATE_ID = "International Patient Summary";
     private static final String X_REQ_ID_HEADER = "x-req-id";
-    private static final List<String> FHIR_PATHS = List.of("/AllergyIntolerance", "/Condition?verification-status=confirmed");
+    private static final List<String> FHIR_PATHS = List.of("/AllergyIntolerance",
+                                                           "/Condition?verification-status=confirmed",
+                                                           "/MedicationStatement?_include=MedicationStatement:medication",
+                                                           "/MedicationRequest?_include=MedicationRequest:medication",
+                                                           "/Immunization",
+                                                           "/Procedure",
+                                                           "/DiagnosticReport?_include=DiagnosticReport:result",
+                                                           "/Observation?category=laboratory",
+                                                           "/Observation?category=vital-signs",
+                                                           "/DeviceUseStatement?_include=DeviceUseStatement:device",
+                                                           "/Specimen");
 
     private final DaoRegistry daoRegistry;
     private final PixManager pixManager;
@@ -156,7 +166,7 @@ public class IpsProvider {
         section.setCode(new CodeableConcept(new Coding(system, code, display)));
         final Narrative text = new Narrative();
         text.setStatusAsString("generated");
-        text.setDivAsString("<div xmlns=***REMOVED***"http://www.w3.org/1999/xhtml***REMOVED***">" + title + "</div>");
+        text.setDivAsString("<div xmlns=\"http://www.w3.org/1999/xhtml\">" + title + "</div>");
         section.setText(text);
         section.setEmptyReason(new CodeableConcept(
                 new Coding("http://terminology.hl7.org/CodeSystem/list-empty-reason", "unavailable", null)));

@@ -113,7 +113,7 @@ public class FhirQueryFilter implements Filter {
             log.error("Query interception failed for {} patient={}", httpRequest.getRequestURI(), patientId, e);
             httpResponse.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             httpResponse.setContentType("application/json;charset=UTF-8");
-            httpResponse.getWriter().write("{***REMOVED***"error***REMOVED***":***REMOVED***"" + jsonEscape(e.getMessage()) + "***REMOVED***"}");
+            httpResponse.getWriter().write("{\"error\":\"" + jsonEscape(e.getMessage()) + "\"}");
             httpResponse.flushBuffer();
         }
     }
@@ -256,6 +256,6 @@ public class FhirQueryFilter implements Filter {
 
     private static String jsonEscape(final String s) {
         if (s == null) return "";
-        return s.replace("***REMOVED******REMOVED***", "***REMOVED******REMOVED******REMOVED******REMOVED***").replace("***REMOVED***"", "***REMOVED******REMOVED******REMOVED***"").replace("***REMOVED***n", "***REMOVED******REMOVED***n").replace("***REMOVED***r", "***REMOVED******REMOVED***r");
+        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r");
     }
 }

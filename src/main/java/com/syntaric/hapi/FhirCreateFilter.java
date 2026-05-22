@@ -314,12 +314,12 @@ public class FhirCreateFilter implements Filter {
 
         final String message = jsonEscape(e.getMessage());
         final String causeChain = jsonEscape(causes.toString());
-        return "{***REMOVED***"error***REMOVED***":***REMOVED***"" + message + "***REMOVED***",***REMOVED***"cause***REMOVED***":***REMOVED***"" + causeChain + "***REMOVED***"}";
+        return "{\"error\":\"" + message + "\",\"cause\":\"" + causeChain + "\"}";
     }
 
     private static String jsonEscape(final String s) {
         if (s == null) return "";
-        return s.replace("***REMOVED******REMOVED***", "***REMOVED******REMOVED******REMOVED******REMOVED***").replace("***REMOVED***"", "***REMOVED******REMOVED******REMOVED***"").replace("***REMOVED***n", "***REMOVED******REMOVED***n").replace("***REMOVED***r", "***REMOVED******REMOVED***r");
+        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r");
     }
 
     // -------------------------------------------------------------------------

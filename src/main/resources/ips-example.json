@@ -13,7 +13,7 @@
         },
         "text": {
           "status": "generated",
-          "div": "<div xmlns=***REMOVED***"http://www.w3.org/1999/xhtml***REMOVED***">Allergy to adhesive agent</div>"
+          "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Allergy to adhesive agent</div>"
         },
         "clinicalStatus": {
           "coding": [
@@ -71,7 +71,7 @@
         },
         "text": {
           "status": "generated",
-          "div": "<div xmlns=***REMOVED***"http://www.w3.org/1999/xhtml***REMOVED***">Allergy to penicillin</div>"
+          "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Allergy to penicillin</div>"
         },
         "clinicalStatus": {
           "coding": [
@@ -129,7 +129,7 @@
         },
         "text": {
           "status": "generated",
-          "div": "<div xmlns=***REMOVED***"http://www.w3.org/1999/xhtml***REMOVED***">Gestational diabetes mellitus</div>"
+          "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Gestational diabetes mellitus</div>"
         },
         "clinicalStatus": {
           "coding": [
@@ -191,7 +191,7 @@
         },
         "text": {
           "status": "generated",
-          "div": "<div xmlns=***REMOVED***"http://www.w3.org/1999/xhtml***REMOVED***">Anemia</div>"
+          "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Anemia</div>"
         },
         "clinicalStatus": {
           "coding": [
