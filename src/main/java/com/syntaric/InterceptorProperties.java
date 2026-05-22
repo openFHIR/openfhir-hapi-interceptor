@@ -40,6 +40,13 @@ public class InterceptorProperties {
 
     private FhirCreateFilter fhirCreateFilter = new FhirCreateFilter();
     private FhirQueryFilter fhirQueryFilter = new FhirQueryFilter();
+    private Ips ips = new Ips();
+
+    @Data
+    public static class Ips {
+        /** openEHR template ID used by the IPS $summary operation. */
+        private String templateId = "International Patient Summary";
+    }
 
     @Data
     public static class FhirCreateFilter {

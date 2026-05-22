@@ -43,6 +43,8 @@ The interceptor also exposes a HAPI operation provider for the standard FHIR
 `GET /fhir/Patient/{id}/$summary` operation, returning an
 [International Patient Summary (IPS)](https://hl7.org/fhir/uv/ips/) Bundle gathered from the configured openEHR CDR.
 
+The openEHR template ID used for the `$summary` operation is configurable via `interceptor.ips.template-id`.
+
 > Implementation is at this time limited only to Allergies and Conditions.
 
 ![Summary flow](fhir_summary.png)
@@ -350,6 +352,20 @@ interceptor.fhir-query-filter.rules[0].fhir-query.category=laboratory
 | `GET /fhir/Condition?patient=123&category=laboratory`                | no       | `_resourceType` is `Condition`, not `Observation`                                                 |
 
 Rules are evaluated in order and the first match wins, so put more specific rules (more criteria) before broader ones.
+
+### IPS `$summary` operation (`interceptor.ips`)
+
+The template ID passed to openFHIR when building an IPS patient summary is configurable:
+
+```yaml
+interceptor:
+  ips:
+    template-id: International Patient Summary   # default value
+```
+
+Override this when your openEHR CDR uses a different template name for the IPS document.
+
+---
 
 ##### Wildcard value `*`
 

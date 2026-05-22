@@ -7,6 +7,7 @@ import ca.uhn.fhir.rest.annotation.Operation;
 import ca.uhn.fhir.rest.api.server.RequestDetails;
 import ca.uhn.fhir.rest.api.server.SystemRequestDetails;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.syntaric.InterceptorProperties;
 import com.syntaric.PixManager;
 import com.syntaric.openehr.Constants;
 import com.syntaric.openehr.OpenEhrAqlUtil;
@@ -28,7 +29,6 @@ import java.util.UUID;
 @Slf4j
 public class IpsProvider {
 
-    private static final String TEMPLATE_ID = "International Patient Summary";
     private static final String X_REQ_ID_HEADER = "x-req-id";
     private static final List<String> FHIR_PATHS = List.of("/AllergyIntolerance",
                                                            "/Condition?verification-status=confirmed",
@@ -48,19 +48,22 @@ public class IpsProvider {
     private final OpenFhirClient openFhirClient;
     private final OpenEhrAqlUtil openEhrAqlUtil;
     private final FhirContext fhirContext;
+    private final InterceptorProperties interceptorProperties;
 
     public IpsProvider(final DaoRegistry daoRegistry,
                        final PixManager pixManager,
                        final OpenEhrCdrRegistry openEhrCdrRegistry,
                        final OpenFhirClient openFhirClient,
                        final OpenEhrAqlUtil openEhrAqlUtil,
-                       final FhirContext fhirContext) {
+                       final FhirContext fhirContext,
+                       final InterceptorProperties interceptorProperties) {
         this.daoRegistry = daoRegistry;
         this.pixManager = pixManager;
         this.openEhrCdrRegistry = openEhrCdrRegistry;
         this.openFhirClient = openFhirClient;
         this.openEhrAqlUtil = openEhrAqlUtil;
         this.fhirContext = fhirContext;
+        this.interceptorProperties = interceptorProperties;
     }
 
     @Operation(name = "$summary", idempotent = true, type = Patient.class)
@@ -91,7 +94,7 @@ public class IpsProvider {
         final List<JsonNode> allRows = new ArrayList<>();
 
         for (final String fhirPath : FHIR_PATHS) {
-            final ToAqlRequest toAqlRequest = new ToAqlRequest(TEMPLATE_ID, ehrId, fhirPath);
+            final ToAqlRequest toAqlRequest = new ToAqlRequest(interceptorProperties.getIps().getTemplateId(), ehrId, fhirPath);
 
             final ToAqlResponse toAqlResponse = openFhirClient.getAql(toAqlRequest, reqId);
             if (toAqlResponse.getAqls() == null || toAqlResponse.getAqls().isEmpty()) {
@@ -117,7 +120,7 @@ public class IpsProvider {
 
         // (6) /openfhir/tofhir
         log.info("Sending {} archetype rows to toFhir for patient {}", allRows.size(), patientIdPart);
-        final String fhirJson = openFhirClient.toFhir(allRows, reqId, TEMPLATE_ID);
+        final String fhirJson = openFhirClient.toFhir(allRows, reqId, interceptorProperties.getIps().getTemplateId());
 
         final Bundle bundle = fhirContext.newJsonParser().parseResource(Bundle.class, fhirJson);
         injectPatient(bundle, patient);

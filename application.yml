@@ -53,3 +53,6 @@ interceptor:
           _resourceType: MedicationStatement
 
   cdrs-config-file: /etc/cdrs.yml
+
+  ips:
+    template-id: International Patient Summary
