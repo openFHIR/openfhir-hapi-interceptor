@@ -100,8 +100,8 @@ public class FhirQueryFilter implements Filter {
                 ? patientParam.substring(patientParam.lastIndexOf('/') + 1)
                 : patientParam;
 
-        log.info("GET {} — rule matched (templateId='{}'), intercepting for patient={}",
-                httpRequest.getRequestURI(), matchedRule.getTemplateId(), patientId);
+        log.info("GET {} — rule matched, intercepting for patient={}",
+                 httpRequest.getRequestURI(), patientId);
 
         try {
             final Bundle bundle = executeSearch(httpRequest, resourceType, patientId, matchedRule);
@@ -123,7 +123,8 @@ public class FhirQueryFilter implements Filter {
                                  final String patientId,
                                  final com.syntaric.InterceptorProperties.Rule rule) {
         final String incomingReqId = httpRequest.getHeader(X_REQ_ID_HEADER);
-        final String reqId = (incomingReqId != null && !incomingReqId.isBlank()) ? incomingReqId : UUID.randomUUID().toString();
+        final String reqId =
+                (incomingReqId != null && !incomingReqId.isBlank()) ? incomingReqId : UUID.randomUUID().toString();
 
         final String cdrName = httpRequest.getHeader(OpenEhrCdrRegistry.TARGET_CDR_HEADER);
         final String resolvedCdrName = openEhrCdrRegistry.resolveName(cdrName);
@@ -137,7 +138,7 @@ public class FhirQueryFilter implements Filter {
         log.debug("Resolved fhirPath={} for ehrId={}", fhirPath, ehrId);
 
         // step 1 — /openfhir/toaql
-        final ToAqlResponse toAqlResponse = openFhirClient.getAql(new ToAqlRequest(rule.getTemplateId(), ehrId, fhirPath), reqId);
+        final ToAqlResponse toAqlResponse = openFhirClient.getAql(new ToAqlRequest(null, ehrId, fhirPath), reqId);
 
         if (toAqlResponse.getAqls() == null || toAqlResponse.getAqls().isEmpty()) {
             log.debug("No AQLs returned for fhirPath={}", fhirPath);
@@ -147,12 +148,15 @@ public class FhirQueryFilter implements Filter {
         // step 2 — execute AQLs against CDR
         final OpenEhrCdrClient cdrClient = openEhrCdrRegistry.resolve(cdrName);
         final List<JsonNode> allRows = new ArrayList<>();
+        String templateId = null;
         for (final ToAqlResponse.AqlResponse aqlResponse : toAqlResponse.getAqls()) {
-            if (aqlResponse.getType() == ToAqlResponse.AqlType.COMPOSITION) {
+            if (aqlResponse.getType() == ToAqlResponse.AqlType.COMPOSITION
+                    && toAqlResponse.getAqls().size() > 1) {
                 continue;
             }
             final String openEhrResult = cdrClient.queryAql(aqlResponse.getAql());
             allRows.addAll(openEhrAqlUtil.extractArchetypeRows(openEhrResult));
+            templateId = aqlResponse.getTemplateId();
         }
 
         if (allRows.isEmpty()) {
@@ -160,11 +164,13 @@ public class FhirQueryFilter implements Filter {
         }
 
         // step 3 — /openfhir/tofhir
-        final String fhirJson = openFhirClient.toFhir(allRows, reqId, rule.getTemplateId());
+        final String fhirJson = openFhirClient.toFhir(allRows, reqId, templateId);
         final Bundle resultBundle = fhirContext.newJsonParser().parseResource(Bundle.class, fhirJson);
 
         // filter to only resources matching the requested type, assign IDs where missing
         final Bundle searchBundle = emptySearchBundle();
+        final ca.uhn.fhir.util.FhirTerser terser = fhirContext.newTerser();
+        final String patientFullUrl = "Patient/" + patientId;
         resultBundle.getEntry().stream()
                 .map(Bundle.BundleEntryComponent::getResource)
                 .filter(r -> r != null && resourceType != null && resourceType.equals(r.getResourceType().name()))
@@ -172,7 +178,8 @@ public class FhirQueryFilter implements Filter {
                     if (r.getIdElement().isEmpty()) {
                         r.setId(UUID.randomUUID().toString());
                     }
-                    searchBundle.addEntry().setResource((Resource) r);
+                    PatientReferenceInjector.injectPatientReference(terser, r, patientFullUrl);
+                    searchBundle.addEntry().setResource(r);
                 });
 
         searchBundle.setTotal(searchBundle.getEntry().size());
@@ -184,7 +191,8 @@ public class FhirQueryFilter implements Filter {
      * or {@code null} if none match. The special key {@code _resourceType} is matched against
      * the resource type extracted from the URI path rather than a query parameter.
      */
-    private com.syntaric.InterceptorProperties.Rule resolveRule(final HttpServletRequest httpRequest, final String resourceType) {
+    private com.syntaric.InterceptorProperties.Rule resolveRule(final HttpServletRequest httpRequest,
+                                                                final String resourceType) {
         for (final com.syntaric.InterceptorProperties.Rule rule : properties.getFhirQueryFilter().getRules()) {
             if (ruleMatches(rule, httpRequest, resourceType)) {
                 return rule;
@@ -194,8 +202,8 @@ public class FhirQueryFilter implements Filter {
     }
 
     boolean ruleMatches(final com.syntaric.InterceptorProperties.Rule rule,
-                                 final HttpServletRequest httpRequest,
-                                 final String resourceType) {
+                        final HttpServletRequest httpRequest,
+                        final String resourceType) {
         for (final Map.Entry<String, String> criterion : rule.getFhirQuery().entrySet()) {
             final String expected = criterion.getValue();
             if (RESOURCE_TYPE_KEY.equals(criterion.getKey())) {
@@ -218,7 +226,9 @@ public class FhirQueryFilter implements Filter {
         return true;
     }
 
-    /** Extracts the last path segment if it looks like a FHIR resource type (starts with uppercase). */
+    /**
+     * Extracts the last path segment if it looks like a FHIR resource type (starts with uppercase).
+     */
     private String resourceTypeFromUri(final String uri) {
         final String[] segments = uri.split("/");
         if (segments.length == 0) {
@@ -255,7 +265,9 @@ public class FhirQueryFilter implements Filter {
     }
 
     private static String jsonEscape(final String s) {
-        if (s == null) return "";
+        if (s == null) {
+            return "";
+        }
         return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r");
     }
 }

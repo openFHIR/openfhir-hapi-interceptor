@@ -1,0 +1,6 @@
+-- Create HAPI FHIR database and user
+CREATE DATABASE hapi;
+CREATE USER hapi WITH ENCRYPTED PASSWORD 'hapi';
+GRANT ALL PRIVILEGES ON DATABASE hapi TO hapi;
+ALTER DATABASE hapi OWNER TO hapi;
+ALTER ROLE hapi SET search_path TO public;

@@ -1,0 +1,42 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://hapi-postgres-test:5432/hapi
+    username: hapi
+    password: hapi
+    driverClassName: org.postgresql.Driver
+  jpa:
+    properties:
+      hibernate:
+        dialect: ca.uhn.fhir.jpa.model.dialect.HapiFhirPostgres94Dialect
+        search:
+          enabled: false
+
+hapi:
+  fhir:
+    fhir_version: R4
+    server_address: http://localhost:8080/fhir
+    custom_bean_packages: com.syntaric
+    custom_interceptor_classes: com.syntaric.hapi.PatientInterceptor
+
+openfhir:
+  base-url: http://openfhir-test:8080
+
+interceptor:
+  fhir-create-filter:
+    intercepted-profiles:
+      - http://nictiz.nl/fhir/StructureDefinition/zib-AllergyIntolerance
+
+  fhir-query-filter:
+    rules:
+      - fhir-query:
+          _resourceType: AllergyIntolerance
+      - fhir-query:
+          _resourceType: Condition
+          verification-status: confirmed
+      - fhir-query:
+          _resourceType: MedicationStatement
+
+  cdrs-config-file: /etc/cdrs.yml
+
+  ips:
+    template-id: EPS Patient Summary

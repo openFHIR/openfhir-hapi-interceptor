@@ -49,6 +49,7 @@ public class ToAqlResponse {
     public static class AqlResponse {
         private String aql;
         private AqlType type;
+        private String templateId;
 
         public AqlResponse(final String aql, final AqlType type) {
             this.aql = aql;

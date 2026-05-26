@@ -1,14 +1,13 @@
 package com.syntaric.hapi;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.mock.web.MockHttpServletRequest;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.mock.web.MockHttpServletRequest;
 
 class FhirQueryFilterRuleMatchesTest {
 
@@ -27,7 +26,6 @@ class FhirQueryFilterRuleMatchesTest {
 
     private static com.syntaric.InterceptorProperties.Rule rule(final Map<String, String> fhirQuery) {
         final com.syntaric.InterceptorProperties.Rule rule = new com.syntaric.InterceptorProperties.Rule();
-        rule.setTemplateId("Test Template");
         rule.setFhirQuery(new LinkedHashMap<>(fhirQuery));
         return rule;
     }

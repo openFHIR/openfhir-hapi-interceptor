@@ -67,9 +67,6 @@ public class InterceptorProperties {
     @Data
     public static class Rule {
 
-        /** openEHR template ID passed to OpenFHIR's toAql endpoint. */
-        private String templateId;
-
         /**
          * FHIR query parameters that must all be present on the request for this rule to match.
          * Use the special key {@code _resourceType} to match the resource type in the URI path.

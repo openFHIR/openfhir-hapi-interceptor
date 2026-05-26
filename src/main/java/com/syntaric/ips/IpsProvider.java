@@ -73,7 +73,8 @@ public class IpsProvider {
 
         final String patientIdPart = patientId.getIdPart();
         final String incomingReqId = requestDetails.getHeader(X_REQ_ID_HEADER);
-        final String reqId = (incomingReqId != null && !incomingReqId.isBlank()) ? incomingReqId : UUID.randomUUID().toString();
+        final String reqId =
+                (incomingReqId != null && !incomingReqId.isBlank()) ? incomingReqId : UUID.randomUUID().toString();
         log.info("$summary called for patient {}, reqId={}", patientIdPart, reqId);
 
         // (1) get patient
@@ -94,7 +95,8 @@ public class IpsProvider {
         final List<JsonNode> allRows = new ArrayList<>();
 
         for (final String fhirPath : FHIR_PATHS) {
-            final ToAqlRequest toAqlRequest = new ToAqlRequest(interceptorProperties.getIps().getTemplateId(), ehrId, fhirPath);
+            final ToAqlRequest toAqlRequest = new ToAqlRequest(interceptorProperties.getIps().getTemplateId(), ehrId,
+                                                               fhirPath);
 
             final ToAqlResponse toAqlResponse = openFhirClient.getAql(toAqlRequest, reqId);
             if (toAqlResponse.getAqls() == null || toAqlResponse.getAqls().isEmpty()) {
@@ -104,7 +106,8 @@ public class IpsProvider {
 
             // (5) trigger AQLs against CDR
             for (final ToAqlResponse.AqlResponse aqlResponse : toAqlResponse.getAqls()) {
-                if (aqlResponse.getType() == ToAqlResponse.AqlType.COMPOSITION) {
+                if (aqlResponse.getType() == ToAqlResponse.AqlType.COMPOSITION
+                        && toAqlResponse.getAqls().size() > 1) {
                     continue;
                 }
                 final String aql = aqlResponse.getAql();
@@ -130,7 +133,6 @@ public class IpsProvider {
     }
 
 
-
     private Bundle buildEmptyBundle(final Patient patient) {
         final String patientUuid = UUID.randomUUID().toString();
         final String patientFullUrl = "urn:uuid:" + patientUuid;
@@ -147,14 +149,17 @@ public class IpsProvider {
         composition.setTitle("Patient Summary");
 
         composition.addSection(emptySection("Active Problems", "http://loinc.org", "11450-4", "Problem list Reported"));
-        composition.addSection(emptySection("Active Allergies and Intolerances", "http://loinc.org", "48765-2", "Allergies and Intolerances"));
-        composition.addSection(emptySection("Active Medication List", "http://loinc.org", "10160-0", "Medication List"));
+        composition.addSection(emptySection("Active Allergies and Intolerances", "http://loinc.org", "48765-2",
+                                            "Allergies and Intolerances"));
+        composition.addSection(
+                emptySection("Active Medication List", "http://loinc.org", "10160-0", "Medication List"));
 
         final Bundle bundle = new Bundle();
         bundle.getMeta().addProfile("http://hl7.org/fhir/uv/ips/StructureDefinition/Bundle-uv-ips");
         bundle.setType(Bundle.BundleType.DOCUMENT);
         bundle.setTimestamp(new Date());
-        bundle.setIdentifier(new Identifier().setSystem("urn:oid:2.16.840.1.113883.3.72").setValue(UUID.randomUUID().toString()));
+        bundle.setIdentifier(
+                new Identifier().setSystem("urn:oid:2.16.840.1.113883.3.72").setValue(UUID.randomUUID().toString()));
         bundle.addEntry().setFullUrl("urn:uuid:" + composition.getId()).setResource(composition);
         bundle.addEntry().setFullUrl(patientFullUrl).setResource(patient);
         return bundle;
@@ -188,15 +193,13 @@ public class IpsProvider {
         bundle.getEntry().add(1, patientEntry);
 
         // update subject/patient references in all clinical resources to the urn:uuid: fullUrl
+        final ca.uhn.fhir.util.FhirTerser terser = fhirContext.newTerser();
         for (final Bundle.BundleEntryComponent entry : bundle.getEntry()) {
             final var resource = entry.getResource();
-            if (resource instanceof Composition composition) {
-                composition.setSubject(new Reference(patientFullUrl));
-            } else if (resource instanceof Condition condition) {
-                condition.setSubject(new Reference(patientFullUrl));
-            } else if (resource instanceof AllergyIntolerance allergyIntolerance) {
-                allergyIntolerance.setPatient(new Reference(patientFullUrl));
+            if (resource == null || resource instanceof Patient) {
+                continue;
             }
+            com.syntaric.hapi.PatientReferenceInjector.injectPatientReference(terser, resource, patientFullUrl);
         }
     }
 }
