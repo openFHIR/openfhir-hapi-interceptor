@@ -33,9 +33,56 @@ permissions:
   contents: write
 
 jobs:
+  # Hard gate: nothing is tagged, pushed or published unless the end-to-end suite
+  # passes. This runs for dry runs too — a dry run should tell you whether the real
+  # release would pass. Unlike CI, a missing license secret fails rather than skips.
+  integration:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      OPENFHIR_IMAGE_TAG: '3.0.0'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Write openFHIR license
+        env:
+          OPENFHIR_LICENSE_JSON: ${{ secrets.OPENFHIR_LICENSE_JSON }}
+        run: |
+          set -euo pipefail
+          if [ -z "${OPENFHIR_LICENSE_JSON:-}" ]; then
+            echo '::error::OPENFHIR_LICENSE_JSON secret is not configured — cannot run the integration suite, refusing to release untested.'
+            exit 1
+          fi
+          mkdir -p tests/licenses
+          printf '%s' "$OPENFHIR_LICENSE_JSON" > tests/licenses/openfhir-license.json
+
+      - name: Install newman
+        run: npm install -g newman
+
+      - name: Run integration tests
+        run: ./tests/test.sh
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: |
+            tests/newman-report.xml
+            tests/docker-logs.txt
+          if-no-files-found: ignore
+
+      - name: Remove openFHIR license
+        if: always()
+        run: rm -f tests/licenses/openfhir-license.json
+
   release:
     name: Release ${{ inputs.version }}
     runs-on: ubuntu-latest
+    needs: integration
 
     steps:
       - uses: actions/checkout@v4

@@ -15,6 +15,18 @@ line it is compiled against is the one it is supported on.
 
 ## [Unreleased]
 
+### Added
+
+- The end-to-end integration suite (`tests/test.sh`) now runs in CI on every pull request to
+  `main` and is a hard gate on the release workflow — nothing is tagged or published unless it
+  passes. Newman results are exported as JUnit XML and, on failure, container logs are captured
+  before the stack is torn down.
+
+### Changed
+
+- The openFHIR image used by the integration stack is pinned to a version tag and can be
+  overridden with `OPENFHIR_IMAGE_TAG` (e.g. `OPENFHIR_IMAGE_TAG=build ./tests/test.sh`).
+
 ## [2.0.0] - 2026-09-04
 
 - **HAPI FHIR:** 8.4.0

@@ -122,6 +122,40 @@ docker compose up --build
 
 > You either need to include an openFHIR container in the docker-compose or configure your sandbox access.
 
+### Integration tests
+
+`tests/test.sh` is the end-to-end suite. It stands up the full stack with Docker Compose — HAPI
+with this interceptor built from source, openFHIR, EHRbase, MongoDB and two PostgreSQL databases —
+and runs a Postman collection through Newman covering Patient create → EHR provisioning, the
+openFHIR `$tofhir` / `$toopenehr` operations, the FHIR↔openEHR round trip and `$summary`.
+
+Prerequisites:
+
+- Docker with Compose v2
+- Newman: `npm install -g newman`
+- A valid openFHIR license at `tests/licenses/openfhir-license.json` (gitignored — supply your own)
+
+Run it with:
+
+```bash
+./tests/test.sh
+```
+
+A cold run takes roughly 10–18 minutes. The stack is torn down afterwards either way; on failure
+the container logs are written to `tests/docker-logs.txt` first. Newman results are also exported
+as JUnit XML to `tests/newman-report.xml`.
+
+The openFHIR image tag defaults to a pinned version and can be overridden, for example to test
+against a fresh local build:
+
+```bash
+OPENFHIR_IMAGE_TAG=build ./tests/test.sh
+```
+
+CI runs this suite on every pull request to `main`, and it is a hard gate on the release
+workflow — nothing is tagged or published unless it passes. It requires the repository secret
+`OPENFHIR_LICENSE_JSON`; pull requests from forks cannot read it, so the job skips there.
+
 ---
 
 ## Configuration
