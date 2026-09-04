@@ -121,9 +121,10 @@ public class IpsProvider {
             return buildEmptyBundle(patient);
         }
 
-        // (6) /openfhir/tofhir
+        // (6) $tofhir
         log.info("Sending {} archetype rows to toFhir for patient {}", allRows.size(), patientIdPart);
-        final String fhirJson = openFhirClient.toFhir(allRows, reqId, interceptorProperties.getIps().getTemplateId());
+        final String fhirJson = openFhirClient.toFhir(allRows, reqId, interceptorProperties.getIps().getTemplateId(),
+                                                      ehrId, "Patient/" + patientIdPart);
 
         final Bundle bundle = fhirContext.newJsonParser().parseResource(Bundle.class, fhirJson);
         injectPatient(bundle, patient);

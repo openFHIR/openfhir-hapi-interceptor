@@ -3,7 +3,7 @@
 actor "FHIR Consumer/Source" as consumer
 
 box "HAPI Integration Layer"
-    participant "openFHIR HAPI Interceptor***REMOVED***n(this project)" as facade
+    participant "openFHIR HAPI Interceptor\n(this project)" as facade
     participant "HAPI FHIR DB" as hapi
 
 end box
@@ -13,7 +13,7 @@ participant "openEHR CDR" as cdr
 
 consumer -> facade : Store FHIR Resource
 
-facade -> hapi : PIX lookup — read Patient,***REMOVED***nfind EHR ID for target CDR
+facade -> hapi : PIX lookup — read Patient,\nfind EHR ID for target CDR
 
 alt EHR ID not found
     facade -> cdr : POST /ehr (create new EHR)
@@ -21,9 +21,11 @@ alt EHR ID not found
     facade -> hapi : update Patient with new ehrId identifier
 end
 
-facade -> openfhir : REST /toopenehr (FHIR resource)
+facade -> openfhir : POST /$toopenehr?format=canonical\n(FHIR Bundle as body)
 
-openfhir --> facade : openEHR Composition
+openfhir --> facade : Parameters\n(composition = openEHR Composition,\noptional outcome = OperationOutcome)
+
+facade -> facade : unwrap composition parameter,\nlog any outcome issues
 
 facade -> cdr : POST /ehr/{{ehrId}}/composition
 

@@ -3,7 +3,7 @@
 actor "FHIR Consumer/Source" as consumer
 
 box "HAPI Integration Layer"
-    participant "openFHIR HAPI Interceptor***REMOVED***n(this project)" as facade
+    participant "openFHIR HAPI Interceptor\n(this project)" as facade
     participant "HAPI FHIR DB" as hapi
 end box
 
@@ -18,16 +18,16 @@ facade -> hapi : read Patient by id
 facade -> facade : resolve EHR ID via PIX manager
 
 loop for each configured FHIR path
-    facade -> openfhir : /toaql (templateId, ehrId, fhirPath)
+    facade -> openfhir : POST /openfhir/toaql (templateId, ehrId, fhirPath)
     openfhir --> facade : AQL(s)
     facade -> cdr : execute AQL
     cdr --> facade : archetype rows
 end
 
-facade -> openfhir : /tofhir (all archetype rows)
-openfhir --> facade : FHIR IPS Bundle
+facade -> openfhir : POST /$tofhir (Parameters: composition = archetype rows,\ntemplateId, context: ehr_id + patient)
+openfhir --> facade : FHIR IPS Bundle\n(engine Provenance/OperationOutcome stripped)
 
-facade -> facade : inject Patient resource***REMOVED***nfix subject references
+facade -> facade : inject Patient resource\nfix subject references
 facade --> consumer : IPS Bundle (from openEHR CDR)
 
 

@@ -163,8 +163,8 @@ public class FhirQueryFilter implements Filter {
             return emptySearchBundle();
         }
 
-        // step 3 — /openfhir/tofhir
-        final String fhirJson = openFhirClient.toFhir(allRows, reqId, templateId);
+        // step 3 — $tofhir
+        final String fhirJson = openFhirClient.toFhir(allRows, reqId, templateId, ehrId, "Patient/" + patientId);
         final Bundle resultBundle = fhirContext.newJsonParser().parseResource(Bundle.class, fhirJson);
 
         // filter to only resources matching the requested type, assign IDs where missing
