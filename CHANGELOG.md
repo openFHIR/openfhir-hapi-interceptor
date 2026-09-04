@@ -13,21 +13,8 @@ line it is compiled against is the one it is supported on.
      The release workflow renames this heading to the version being released and
      opens a fresh, empty "Unreleased" section in its place. -->
 
+
 ## [Unreleased]
-
-### Added
-
-- The end-to-end integration suite (`tests/test.sh`) now runs in CI on every pull request to
-  `main` and is a hard gate on the release workflow — nothing is tagged or published unless it
-  passes. Newman results are exported as JUnit XML and, on failure, container logs are captured
-  before the stack is torn down.
-
-### Changed
-
-- The openFHIR image used by the integration stack is pinned to a version tag and can be
-  overridden with `OPENFHIR_IMAGE_TAG` (e.g. `OPENFHIR_IMAGE_TAG=build ./tests/test.sh`).
-
-## [2.0.0] - 2026-09-04
 
 - **HAPI FHIR:** 8.4.0
 - **Requires openFHIR:** >= 3.0.0
@@ -41,11 +28,17 @@ line it is compiled against is the one it is supported on.
 - The `$summary` operation is no longer hard-wired to the International Patient Summary
   openEHR template; the template ID is configurable via `interceptor.ips.template-id`.
 - Upgraded the HAPI FHIR dependency line to 8.4.0.
-
+- The openFHIR image used by the integration stack is pinned to a version tag and can be
+  overridden with `OPENFHIR_IMAGE_TAG` (e.g. `OPENFHIR_IMAGE_TAG=build ./tests/test.sh`).
+  
 ### Added
 
 - Additional IPS sections beyond Allergies and Conditions.
 - Unit tests covering the openFHIR client, query filtering and summary generation.
+- The end-to-end integration suite (`tests/test.sh`) now runs in CI on every pull request to
+  `main` and is a hard gate on the release workflow — nothing is tagged or published unless it
+  passes. Newman results are exported as JUnit XML and, on failure, container logs are captured
+  before the stack is torn down.
 
 ## [1.1.0] - 2026-05-26
 
