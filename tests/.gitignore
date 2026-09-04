@@ -1,5 +1,10 @@
 # License files contain secrets — supply these locally
 licenses/
+nimbalyst-local/
+
+# Test run artefacts
+newman-report.xml
+docker-logs.txt
 
 # Test run artefacts
 newman-report.xml
