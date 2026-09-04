@@ -16,6 +16,10 @@ line it is compiled against is the one it is supported on.
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-09-04
+
+- **HAPI FHIR:** 8.4.0
+
 - **HAPI FHIR:** 8.4.0
 - **Requires openFHIR:** >= 3.0.0
 
@@ -71,5 +75,6 @@ line it is compiled against is the one it is supported on.
   Bundle assembled from the CDR.
 
 [Unreleased]: https://github.com/openFHIR/openfhir-hapi-interceptor/compare/2.0.0...HEAD
+[2.0.0]: https://github.com/openFHIR/openfhir-hapi-interceptor/compare/1.1.0...2.0.0
 [1.1.0]: https://github.com/openFHIR/openfhir-hapi-interceptor/compare/1.0.0...1.1.0
 [1.0.0]: https://github.com/openFHIR/openfhir-hapi-interceptor/releases/tag/1.0.0
