@@ -3,29 +3,29 @@
 actor "FHIR Consumer/Source" as consumer
 
 box "HAPI Integration Layer"
-    participant "openFHIR HAPI Interceptor***REMOVED***n(this project)" as facade
+    participant "openFHIR HAPI Interceptor\n(this project)" as facade
     participant "HAPI FHIR DB" as hapi
 end box
 
 participant "openFHIR" as openfhir
 participant "openEHR CDR" as cdr
 
-consumer -> facade : FHIR Search Query***REMOVED***n(e.g. GET /fhir/AllergyIntolerance?patient=123)***REMOVED***n[X-OpenEhrCdr: <cdr-id>]
+consumer -> facade : FHIR Search Query\n(e.g. GET /fhir/AllergyIntolerance?patient=123)\n[X-OpenEhrCdr: <cdr-id>]
 
-facade -> hapi : PIX lookup — read Patient,***REMOVED***nfind EHR ID for target CDR
+facade -> hapi : PIX lookup — read Patient,\nfind EHR ID for target CDR
 
-facade -> openfhir : /toaql (templateId, ehrId, fhirPath)
+facade -> openfhir : POST /openfhir/toaql (templateId, ehrId, fhirPath)
 
 openfhir --> facade : AQL(s)
 
 facade -> cdr : execute AQL
 cdr --> facade : archetype rows
 
-facade -> openfhir : REST /tofhir (archetype rows)
+facade -> openfhir : POST /$tofhir (Parameters: composition = archetype rows,\ntemplateId, context: ehr_id + patient)
 
 
-openfhir --> facade : FHIR Bundle
+openfhir --> facade : FHIR Bundle\n(engine Provenance/OperationOutcome stripped)
 
-facade --> consumer : FHIR searchset Bundle***REMOVED***n(filtered to requested resource type)
+facade --> consumer : FHIR searchset Bundle\n(filtered to requested resource type)
 
 @enduml

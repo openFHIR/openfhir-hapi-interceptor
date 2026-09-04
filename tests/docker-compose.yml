@@ -14,7 +14,7 @@ services:
         condition: service_healthy
 
   openfhir:
-    image: openfhir/openfhir-enterprise:build
+    image: openfhir/openfhir-enterprise:${OPENFHIR_IMAGE_TAG:-3.0.0}
     container_name: openfhir-test
     ports:
       - "8080:8080"

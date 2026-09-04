@@ -1,2 +1,6 @@
 # License files contain secrets — supply these locally
 licenses/
+
+# Test run artefacts
+newman-report.xml
+docker-logs.txt

@@ -19,6 +19,10 @@ Compositions and vice versa using configurable template-based mappings.
 
 > See https://github.com/openFHIR/openfhir-firely-plugin if you're looking for a Firely Plugin.
 
+> **Compatibility:** this version of the interceptor only works with **openFHIR >= 3.0.0** — it uses the
+> `$tofhir` / `$toopenehr` FHIR operations introduced in openFHIR 3.0.0. If you need a plugin that works with
+> openFHIR < 3.0.0, look into the old `1.x` version of this project instead.
+
 ## How it works
 
 ### Storing FHIR data in openEHR
@@ -118,6 +122,40 @@ docker compose up --build
 
 > You either need to include an openFHIR container in the docker-compose or configure your sandbox access.
 
+### Integration tests
+
+`tests/test.sh` is the end-to-end suite. It stands up the full stack with Docker Compose — HAPI
+with this interceptor built from source, openFHIR, EHRbase, MongoDB and two PostgreSQL databases —
+and runs a Postman collection through Newman covering Patient create → EHR provisioning, the
+openFHIR `$tofhir` / `$toopenehr` operations, the FHIR↔openEHR round trip and `$summary`.
+
+Prerequisites:
+
+- Docker with Compose v2
+- Newman: `npm install -g newman`
+- A valid openFHIR license at `tests/licenses/openfhir-license.json` (gitignored — supply your own)
+
+Run it with:
+
+```bash
+./tests/test.sh
+```
+
+A cold run takes roughly 10–18 minutes. The stack is torn down afterwards either way; on failure
+the container logs are written to `tests/docker-logs.txt` first. Newman results are also exported
+as JUnit XML to `tests/newman-report.xml`.
+
+The openFHIR image tag defaults to a pinned version and can be overridden, for example to test
+against a fresh local build:
+
+```bash
+OPENFHIR_IMAGE_TAG=build ./tests/test.sh
+```
+
+CI runs this suite on every pull request to `main`, and it is a hard gate on the release
+workflow — nothing is tagged or published unless it passes. It requires the repository secret
+`OPENFHIR_LICENSE_JSON`; pull requests from forks cannot read it, so the job skips there.
+
 ---
 
 ## Configuration
@@ -193,6 +231,9 @@ against the `id` field.
 
 ### openFHIR service (`openfhir.base-url`)
 
+The configured openFHIR instance must be **version 3.0.0 or newer** — the interceptor calls the
+`POST /$tofhir` and `POST /$toopenehr` FHIR operations (plus the legacy `/openfhir/toaql`).
+
 ```properties
 openfhir.base-url=https://sandbox.open-fhir.com
 
@@ -243,7 +284,10 @@ POST /fhir
            │           filters to references of type Patient, returns first non-blank ID part
            ├─ look up EHR ID via PIX manager (local patient hapi store)
            │     └─ if not found → provision new EHR on CDR
-           ├─ convert resource to openEHR format via openFHIR
+           ├─ convert resource to openEHR format via openFHIR POST /$toopenehr?format=canonical
+           │     (FHIR Bundle sent directly as the body; the composition JSON comes back in
+           │      Parameters.parameter[name=composition].valueString; engine warnings in the
+           │      optional outcome parameter are logged)
            ├─ store on CDR
            └─ return HTTP 201 + Location header  (HAPI never sees the request)
 ```
@@ -299,9 +343,13 @@ GET /fhir/AllergyIntolerance?patient=123
            ├─ resolve EHR ID via PIX manager (local patient HAPI store)
            │     └─ if not found → error (no provisioning for query path)
            ├─ build fhirPath (/ResourceType?remaining-params, patient excluded)
-           ├─ call openFHIR /toaql with templateId from matched rule
+           ├─ call openFHIR /openfhir/toaql with templateId from matched rule
            ├─ execute returned AQLs against CDR (skipping COMPOSITION-type AQLs)
-           ├─ call openFHIR /tofhir with AQL result rows
+           ├─ call openFHIR POST /$tofhir with AQL result rows
+           │     (Parameters body: composition = stringified rows, templateId, context with
+           │      ehr_id + patient reference; engine-marked Provenance and OperationOutcome
+           │      entries are stripped from the returned Bundle — Provenance produced by a
+           │      mapping itself is kept)
            ├─ filter result bundle to requested resource type
            └─ return HTTP 200 searchset Bundle  (HAPI never sees the request)
 ```
@@ -365,6 +413,25 @@ interceptor:
 
 Override this when your openEHR CDR uses a different template name for the IPS document.
 
+#### Flow
+
+```
+GET /fhir/Patient/123/$summary
+    │
+    ├─ read Patient from the local HAPI store
+    ├─ resolve EHR ID via PIX manager
+    │
+    └─ for each IPS section (AllergyIntolerance, Condition, MedicationStatement, ...)
+          ├─ call openFHIR /openfhir/toaql with interceptor.ips.template-id
+          └─ execute returned AQLs against CDR → collect rows
+    │
+    ├─ call openFHIR POST /$tofhir with all collected rows + interceptor.ips.template-id
+    │     (context carries ehr_id + patient reference; engine-marked Provenance and
+    │      OperationOutcome entries are stripped from the returned Bundle)
+    ├─ inject Patient resource and update subject references
+    └─ return HTTP 200 IPS document Bundle
+```
+
 ---
 
 ##### Wildcard value `*`
@@ -393,3 +460,48 @@ interceptor.fhir-query-filter.rules[1].fhir-query.status=final
 | `GET /fhir/Observation?patient=1&status=final`         | no — `category` absent                  | yes                             |
 
 
+
+---
+
+## Releasing
+
+Releases are cut by the **Release** GitHub Actions workflow
+(`.github/workflows/release.yml`), run manually from the Actions tab.
+
+Every push to `main` and every pull request is built and tested by the **CI** workflow first.
+
+### Cutting a release
+
+1. Record what changed under the `## [Unreleased]` heading in [CHANGELOG.md](CHANGELOG.md),
+   using the usual *Added / Changed / Fixed / Removed* groupings. The release fails if this
+   section is empty — release notes are never auto-invented from commit subjects alone.
+2. Actions → **Release** → *Run workflow*, and provide:
+
+   | Input          | Meaning                                                                   |
+   |----------------|---------------------------------------------------------------------------|
+   | `version`      | Version being released, e.g. `2.0.0`. Tags carry no `v` prefix.            |
+   | `next_version` | Optional next development version. Defaults to a patch bump.               |
+   | `prerelease`   | Mark the GitHub release as a pre-release.                                  |
+   | `dry_run`      | Build and print the notes to the job summary without tagging or publishing.|
+
+Run it once with `dry_run` enabled to preview the notes before publishing for real.
+
+### What the workflow does
+
+1. Validates the version and refuses to reuse an existing tag.
+2. Sets `pom.xml` to the release version.
+3. Reads `hapi.fhir.version` from `pom.xml` so the notes state which HAPI FHIR
+   version the plugin is built against.
+4. Builds and runs the tests.
+5. Promotes the changelog's `Unreleased` section to the released version and opens a fresh
+   empty one.
+6. Commits, tags, and pushes.
+7. Publishes a GitHub Release with the built JAR attached, and notes containing the target
+   HAPI FHIR version, the changelog for this version, and the commits since the previous tag.
+8. Bumps `pom.xml` to the next `-SNAPSHOT` development version.
+
+### Versioning
+
+The interceptor follows [Semantic Versioning](https://semver.org/). Because it is loaded into
+a running HAPI FHIR server, each release is supported on the HAPI FHIR line it was compiled
+against — recorded per release in [CHANGELOG.md](CHANGELOG.md) and in the release notes.

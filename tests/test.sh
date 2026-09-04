@@ -1,16 +1,19 @@
 #!/bin/bash
 set -e
 
-# ── Colours ──────────────────────────────────────────────────────────────────
-RESET=$(tput sgr0)
-BOLD=$(tput bold)
-GREEN=$(tput setaf 2)
-CYAN=$(tput setaf 6)
-YELLOW=$(tput setaf 3)
-RED=$(tput setaf 1)
+# ── Colours (only when writing to a terminal — keeps CI logs clean) ──────────
+if [ -t 1 ] && [ "${TERM:-dumb}" != "dumb" ] && command -v tput > /dev/null 2>&1; then
+    RESET=$(tput sgr0)
+    BOLD=$(tput bold)
+    GREEN=$(tput setaf 2)
+    CYAN=$(tput setaf 6)
+    YELLOW=$(tput setaf 3)
+    RED=$(tput setaf 1)
+else
+    RESET='' BOLD='' GREEN='' CYAN='' YELLOW='' RED=''
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 COLLECTION="$SCRIPT_DIR/openFHIR HAPI Interceptor Tests.postman_collection.json"
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -69,8 +72,18 @@ wait_for_log() {
 }
 
 cleanup() {
-    log "Tearing down containers..."
+    local status=${1:-0}
     cd "$SCRIPT_DIR"
+
+    # On failure, capture the container logs before the stack is destroyed —
+    # otherwise a CI failure is undiagnosable.
+    if [ "$status" -ne 0 ]; then
+        warn "Run failed (exit $status) — dumping container logs to $SCRIPT_DIR/docker-logs.txt"
+        docker compose logs --no-color --tail=400 > "$SCRIPT_DIR/docker-logs.txt" 2>&1 || true
+        cat "$SCRIPT_DIR/docker-logs.txt" || true
+    fi
+
+    log "Tearing down containers..."
     docker compose down -v --remove-orphans 2>/dev/null || true
 }
 
@@ -91,8 +104,8 @@ docker compose down -v --remove-orphans 2>/dev/null || true
 log "Starting containers (rebuilding hapi from source)..."
 docker compose up -d --build
 
-# Register cleanup on exit (success or failure)
-trap cleanup EXIT
+# Register cleanup on exit (success or failure), passing the exit status through
+trap 'cleanup $?' EXIT
 
 # ── Step 3: Wait for all services ────────────────────────────────────────────
 wait_for_log  "mongodb-test"          "Waiting for connections"         60
@@ -108,7 +121,8 @@ wait_for_http_status "http://localhost:4080/fhir/metadata" \
 # ── Step 4: Run Newman ────────────────────────────────────────────────────────
 log "Running Postman collection with Newman..."
 newman run "$COLLECTION" \
-    --reporters cli \
+    --reporters cli,junit \
+    --reporter-junit-export "$SCRIPT_DIR/newman-report.xml" \
     --bail
 
 ok "All Newman tests passed!"
