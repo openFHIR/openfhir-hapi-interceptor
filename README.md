@@ -413,6 +413,36 @@ interceptor:
 
 Override this when your openEHR CDR uses a different template name for the IPS document.
 
+#### One AQL for the whole summary (openFHIR `_query`)
+
+By default `$summary` asks openFHIR for AQLs section by section, and runs each against the CDR. To fetch the
+summary with one query instead, configure it in the openFHIR context file of the `interceptor.ips.template-id`
+template, with a `_query` rule `$summary`. openFHIR replaces `{{ehrid}}` with the patient's EHR ID:
+
+```yaml
+context:
+  template:
+    id: "International Patient Summary"
+  # ...
+  _query:
+    - aql: "SELECT c FROM EHR e CONTAINS COMPOSITION c[openEHR-EHR-COMPOSITION.health_summary.v1] WHERE e/ehr_id/value = '{{ehrid}}' AND c/archetype_details/template_id/value = 'International Patient Summary'"
+      rules:
+        - "$summary"
+```
+
+The interceptor uses the AQL when openFHIR answers `/Patient/{id}/$summary` with exactly one AQL, of type
+`COMPOSITION`, for the `interceptor.ips.template-id` template, which holds the patient's EHR ID. It falls back to
+the per-section queries when openFHIR answers anything else, when `/toaql` fails (logged as a warning), and when
+the AQL finds no rows: a patient without a composition of the template gets the per-section summary, as before.
+
+- **`{{ehrid}}` is required.** An AQL without it is not scoped to the patient; the interceptor ignores it, with a
+  warning.
+- **The composition is the first column.** The interceptor sends the first column of every row to `$tofhir`.
+- **The whole composition is mapped.** The per-section filters do not apply: Conditions of every verification
+  status and Observations of every category reach the summary.
+- **Every matching composition is mapped.** If the EHR can hold more than one composition of the template, narrow
+  the AQL to the one you want.
+
 #### Flow
 
 ```
@@ -421,7 +451,11 @@ GET /fhir/Patient/123/$summary
     ├─ read Patient from the local HAPI store
     ├─ resolve EHR ID via PIX manager
     │
-    └─ for each IPS section (AllergyIntolerance, Condition, MedicationStatement, ...)
+    ├─ call openFHIR /openfhir/toaql for /Patient/123/$summary with interceptor.ips.template-id
+    │     └─ a single COMPOSITION AQL back for that template and EHR ID (a _query with rule "$summary"):
+    │           execute it against CDR → collect rows; any rows → skip the per-section loop
+    │
+    └─ otherwise, for each IPS section (AllergyIntolerance, Condition, MedicationStatement, ...)
           ├─ call openFHIR /openfhir/toaql with interceptor.ips.template-id
           └─ execute returned AQLs against CDR → collect rows
     │

@@ -14,15 +14,18 @@ import com.syntaric.openehr.OpenEhrAqlUtil;
 import com.syntaric.openehr.OpenEhrCdrClient;
 import com.syntaric.openehr.OpenEhrCdrRegistry;
 import com.syntaric.openfhir.OpenFhirClient;
+import com.syntaric.openfhir.OpenFhirException;
 import com.syntaric.openfhir.aql.ToAqlRequest;
 import com.syntaric.openfhir.aql.ToAqlResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.hl7.fhir.r4.model.*;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Component
@@ -90,8 +93,104 @@ public class IpsProvider {
                 .orElseThrow(() -> new IllegalStateException(
                         "No EHR ID found for patient " + patientIdPart + " on CDR '" + resolvedCdrName + "'"));
 
-        // (4) /openfhir/toaql — get AQLs for each fhir path
+        // (4) /openfhir/toaql and the CDR — one AQL configured in openFHIR for the whole summary; else, or when it
+        // finds nothing, AQLs for each fhir path
         final OpenEhrCdrClient cdrClient = openEhrCdrRegistry.resolve(cdrName);
+        final List<JsonNode> allRows = configuredSummaryRows(patientIdPart, ehrId, cdrClient, reqId)
+                .orElseGet(() -> sectionRows(ehrId, cdrClient, reqId));
+
+        if (allRows.isEmpty()) {
+            log.info("No archetype rows found for patient {}, returning empty IPS bundle", patientIdPart);
+            return buildEmptyBundle(patient);
+        }
+
+        // (5) $tofhir
+        log.info("Sending {} archetype rows to toFhir for patient {}", allRows.size(), patientIdPart);
+        final String fhirJson = openFhirClient.toFhir(allRows, reqId, interceptorProperties.getIps().getTemplateId(),
+                                                      ehrId, "Patient/" + patientIdPart);
+
+        final Bundle bundle = fhirContext.newJsonParser().parseResource(Bundle.class, fhirJson);
+        injectPatient(bundle, patient);
+        bundle.getEntryFirstRep().setFullUrl("urn:uuid:" + UUID.randomUUID());
+
+        return bundle;
+    }
+
+    /**
+     * The rows of the AQL openFHIR has configured for the whole summary: a context's {@code _query} whose rules
+     * include {@code $summary}. Empty when openFHIR has none, or when it finds no rows (a patient without a
+     * composition of the summary template), so the caller queries each IPS section instead.
+     */
+    Optional<List<JsonNode>> configuredSummaryRows(final String patientId,
+                                                   final String ehrId,
+                                                   final OpenEhrCdrClient cdrClient,
+                                                   final String reqId) {
+        final String templateId = interceptorProperties.getIps().getTemplateId();
+        final ToAqlResponse toAqlResponse;
+        try {
+            toAqlResponse = openFhirClient.getAql(new ToAqlRequest(templateId, ehrId, summaryFhirPath(patientId)),
+                                                  reqId);
+        } catch (final OpenFhirException e) {
+            // openFHIR answers "nothing configured" with no AQLs, not an error: this is a failure, and the
+            // per-section queries that follow are the summary without the configured AQL
+            log.warn("openFHIR /toaql for {} failed (status={}), querying each IPS section, reqId={}: {}",
+                     summaryFhirPath(patientId), e.getStatusCode(), reqId, e.getMessage());
+            return Optional.empty();
+        }
+        final String aql = configuredSummaryAql(toAqlResponse, templateId, ehrId);
+        if (aql == null) {
+            log.debug("No configured $summary AQL in openFHIR, querying each IPS section, reqId={}", reqId);
+            return Optional.empty();
+        }
+        log.info("Using openFHIR's configured $summary AQL for patient {}, reqId={}", patientId, reqId);
+        final List<JsonNode> rows = openEhrAqlUtil.extractArchetypeRows(cdrClient.queryAql(aql));
+        if (rows.isEmpty()) {
+            log.info("Configured $summary AQL found nothing for patient {}, querying each IPS section, reqId={}",
+                     patientId, reqId);
+            return Optional.empty();
+        }
+        return Optional.of(rows);
+    }
+
+    static String summaryFhirPath(final String patientId) {
+        return "/Patient/" + patientId + "/$summary";
+    }
+
+    /**
+     * The AQL of a configured {@code _query}, or {@code null}. openFHIR answers a matching {@code _query} as the
+     * only AQL, of type COMPOSITION; AQLs it generates from the mappings come as an ENTRY AQL with its COMPOSITION
+     * AQL. The AQL must be for {@code templateId}: openFHIR also answers with another context's {@code _query}.
+     * And it must hold {@code ehrId}: openFHIR fills it in for {@code {{ehrid}}}, and an AQL without it would
+     * query every patient's compositions.
+     */
+    static String configuredSummaryAql(final ToAqlResponse toAqlResponse, final String templateId,
+                                       final String ehrId) {
+        if (toAqlResponse == null || toAqlResponse.getAqls() == null || toAqlResponse.getAqls().size() != 1) {
+            return null;
+        }
+        final ToAqlResponse.AqlResponse only = toAqlResponse.getAqls().get(0);
+        if (only.getType() != ToAqlResponse.AqlType.COMPOSITION || StringUtils.isBlank(only.getAql())) {
+            return null;
+        }
+        if (!normalizedTemplateId(templateId).equals(normalizedTemplateId(only.getTemplateId()))) {
+            log.warn("Ignoring openFHIR's configured $summary AQL for template '{}': the IPS template is '{}'",
+                     only.getTemplateId(), templateId);
+            return null;
+        }
+        if (StringUtils.isBlank(ehrId) || !only.getAql().contains(ehrId)) {
+            log.warn("Ignoring openFHIR's configured $summary AQL: it is not scoped to the patient's EHR "
+                             + "(no '{{ehrid}}' in the _query?): {}", only.getAql());
+            return null;
+        }
+        return only.getAql();
+    }
+
+    /** openFHIR's own comparison of template ids: case and spaces versus underscores do not count. */
+    private static String normalizedTemplateId(final String templateId) {
+        return StringUtils.defaultString(templateId).toLowerCase().replace(" ", "_");
+    }
+
+    private List<JsonNode> sectionRows(final String ehrId, final OpenEhrCdrClient cdrClient, final String reqId) {
         final List<JsonNode> allRows = new ArrayList<>();
 
         for (final String fhirPath : FHIR_PATHS) {
@@ -104,7 +203,7 @@ public class IpsProvider {
                 continue;
             }
 
-            // (5) trigger AQLs against CDR
+            // trigger AQLs against CDR
             for (final ToAqlResponse.AqlResponse aqlResponse : toAqlResponse.getAqls()) {
                 if (aqlResponse.getType() == ToAqlResponse.AqlType.COMPOSITION
                         && toAqlResponse.getAqls().size() > 1) {
@@ -115,22 +214,7 @@ public class IpsProvider {
                 allRows.addAll(openEhrAqlUtil.extractArchetypeRows(openEhrResult));
             }
         }
-
-        if (allRows.isEmpty()) {
-            log.info("No archetype rows found for patient {}, returning empty IPS bundle", patientIdPart);
-            return buildEmptyBundle(patient);
-        }
-
-        // (6) $tofhir
-        log.info("Sending {} archetype rows to toFhir for patient {}", allRows.size(), patientIdPart);
-        final String fhirJson = openFhirClient.toFhir(allRows, reqId, interceptorProperties.getIps().getTemplateId(),
-                                                      ehrId, "Patient/" + patientIdPart);
-
-        final Bundle bundle = fhirContext.newJsonParser().parseResource(Bundle.class, fhirJson);
-        injectPatient(bundle, patient);
-        bundle.getEntryFirstRep().setFullUrl("urn:uuid:" + UUID.randomUUID());
-
-        return bundle;
+        return allRows;
     }
 
 
