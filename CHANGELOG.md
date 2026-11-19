@@ -16,6 +16,10 @@ line it is compiled against is the one it is supported on.
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-11-19
+
+- **HAPI FHIR:** 8.4.0
+
 ### Added
 
 - `$summary` fetches the whole summary with one AQL when openFHIR has one configured for it (a `_query` with rule
@@ -81,7 +85,8 @@ line it is compiled against is the one it is supported on.
 - `GET /fhir/Patient/{id}/$summary` operation returning an International Patient Summary
   Bundle assembled from the CDR.
 
-[Unreleased]: https://github.com/openFHIR/openfhir-hapi-interceptor/compare/2.0.0...HEAD
+[Unreleased]: https://github.com/openFHIR/openfhir-hapi-interceptor/compare/2.0.1...HEAD
+[2.0.1]: https://github.com/openFHIR/openfhir-hapi-interceptor/compare/2.0.0...2.0.1
 [2.0.0]: https://github.com/openFHIR/openfhir-hapi-interceptor/compare/1.1.0...2.0.0
 [1.1.0]: https://github.com/openFHIR/openfhir-hapi-interceptor/compare/1.0.0...1.1.0
 [1.0.0]: https://github.com/openFHIR/openfhir-hapi-interceptor/releases/tag/1.0.0
