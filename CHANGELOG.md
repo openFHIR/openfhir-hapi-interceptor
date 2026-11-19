@@ -16,6 +16,13 @@ line it is compiled against is the one it is supported on.
 
 ## [Unreleased]
 
+### Added
+
+- `$summary` fetches the whole summary with one AQL when openFHIR has one configured for it (a `_query` with rule
+  `$summary` in the IPS template's context), instead of querying each IPS section; without one, or when it finds
+  nothing, it behaves as before. With it, the whole composition is mapped: the per-section filters (confirmed
+  Conditions, laboratory and vital-sign Observations) do not apply.
+
 ## [2.0.0] - 2026-09-04
 
 - **HAPI FHIR:** 8.4.0
